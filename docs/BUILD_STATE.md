@@ -2,34 +2,89 @@
 
 ## 1. CURRENT EXECUTIVE STATUS
 
-- **Current Phase**: Phase 0.1 — Architecture Correction & Scope Hardening
-- **Phase Status**: `COMPLETED (AWAITING HUMAN APPROVAL)`
-- **Next Approved Action**: Await explicit human command `APPROVE PHASE 1` before creating codebase, installing dependencies, or making implementation commits.
-- **Phase 0.1 Deliverables Updated**:
-  - `AGENTS.md` — Governance, dynamic class lookup, license transparency, secret protection
-  - `docs/PRD.md` — Product requirements, 5 granular failure states, minimal persistence, API surface
-  - `docs/ARCHITECTURE.md` — End-to-end architecture, development-time benchmarking, REST API, DB model
-  - `docs/DESIGN.md` — Mobile UI spec, 5 UI review states, design system tokens
-  - `docs/TECH_RULES.md` — Technical standards, dynamic label lookup rule, phased dependency isolation
-  - `docs/EXECUTION_PLAN.md` — 8 gated phases, Phase 1 foundation scope isolation, acceptance criteria
-  - `docs/BUILD_STATE.md` — (This document) Living implementation ledger
+- **Current Phase**: Phase 1 — Foundation & Repository Setup
+- **Phase Status**: `PASSED (AWAITING HUMAN APPROVAL FOR PHASE 2)`
+- **Next Approved Action**: Await explicit human command `APPROVE PHASE 2` before creating `catalog.csv` or implementing RapidFuzz catalog matcher.
 
 ---
 
-## 2. ARCHITECTURE DECISIONS SUMMARY
+## 2. EMPIRICAL MACHINE ENVIRONMENT DATA
+
+| Environment Component | Measured Version / Status |
+| :--- | :--- |
+| **Operating System** | Windows 11 Pro |
+| **Python Executable** | `Python 3.11.9` |
+| **Node.js Environment** | `v22.15.1` |
+| **npm Package Manager** | `9.9.4` |
+| **Django Framework** | `5.2.17` |
+| **Django REST Framework** | `3.18.0` |
+| **pytest Test Runner** | `9.1.1` |
+| **pytest-django Plugin** | `4.14.0` |
+| **django-cors-headers** | `4.9.0` |
+| **Expo SDK** | `~57.0.12` |
+| **React Native** | `0.86.2` |
+| **TypeScript Compiler** | `~6.0.3` (`npx tsc --noEmit` passed with 0 errors) |
+
+---
+
+## 3. VERIFICATION & TEST RESULTS
+
+### 3.1 Backend Health Check Test
+- **Command**: `pytest` (executed inside `backend/` directory)
+- **Result**: `1 passed in 0.62s`
+- **Tested Endpoint**: `GET /api/health/` $\rightarrow$ `HTTP 200 OK` $\rightarrow$ `{"status": "ok"}`
+
+### 3.2 Backend Server Startup Verification
+- **Command**: `python backend/manage.py runserver 127.0.0.1:8000`
+- **Result**: Server booted cleanly on port 8000; answered `GET /api/health/` with HTTP 200 OK.
+
+### 3.3 Mobile Build & TypeScript Compilation
+- **Command**: `npx tsc --noEmit` (executed inside `mobile/` directory)
+- **Result**: Clean compilation with 0 errors.
+
+### 3.4 Mobile-to-Backend Connectivity Check
+- **Config Boundary**: [mobile/src/config/api.ts](file:///c:/Users/rishi/Documents/Project/MealVue/mobile/src/config/api.ts)
+- **Connectivity Screen**: [mobile/App.tsx](file:///c:/Users/rishi/Documents/Project/MealVue/mobile/App.tsx)
+- **Result**: Verified screen state rendering `Connected (200 OK)`.
+
+---
+
+## 4. INSTALLED PHASE 1 DEPENDENCIES
+
+### Backend (`backend/requirements.txt`)
+- `asgiref==3.12.1`
+- `colorama==0.4.6`
+- `Django==5.2.17`
+- `django-cors-headers==4.9.0`
+- `djangorestframework==3.18.0`
+- `iniconfig==2.3.0`
+- `packaging==26.3`
+- `pluggy==1.6.0`
+- `Pygments==2.20.0`
+- `pytest==9.1.1`
+- `pytest-django==4.14.0`
+- `sqlparse==0.6.0`
+- `tzdata==2026.3`
+
+*(Strict Isolation: Zero ML, zero PyTorch, zero Ultralytics, zero RapidFuzz, zero VLM client dependencies added in Phase 1).*
+
+---
+
+## 5. ARCHITECTURE DECISIONS SUMMARY
 
 | ADR ID | Decision Summary | Rationale / Tradeoff |
 | :--- | :--- | :--- |
 | **ADR-01** | Local CPU Detector Candidate (YOLO26n) with Dynamic Lookup | Development-time benchmarking workflow. Dynamic `model.names` lookup for `book` (class 73 in COCO). AGPL-3.0 portfolio tradeoff. |
 | **ADR-02** | Hosted VLM via OpenRouter (`google/gemini-2.5-flash`) | Configurable `VLM_BATCH_SIZE` with stable `crop_id`. Decouples VLM text legibility from catalog match confidence. |
 | **ADR-03** | RapidFuzz Catalog Matcher + Provisional Thresholds | Matches against in-memory index of file-backed `catalog.csv`. Thresholds calibrated in Phase 2 against catalog edge cases. |
-| **ADR-04** | 5 Granular Product & Failure States | Explicitly separates `matched`, `needs_review`, `unmatched`, `unreadable`, and `extraction_failed`. Network/VLM timeouts $\rightarrow$ `extraction_failed`. |
+| **ADR-04** | 5 Granular Product & Failure States | Explicitly separates `matched`, `needs_review`, `unmatched`, `unreadable`, and `extraction_failed`. `matched` requires explicit user confirmation. |
 | **ADR-05** | Simplified Persistence Strategy | `catalog.csv` is file-backed. Scan/review state is transient. SQLite persists confirmed books only (`LibraryBook` ORM model). |
 | **ADR-06** | Minimal REST API Surface | `POST /api/analyze/`, `POST /api/match/`, `GET /api/library/`, `POST /api/library/`. |
+| **ADR-07** | CORS & Networking Boundary for Dev | `django-cors-headers` enabled in Django settings. Mobile API base URL isolated in `mobile/src/config/api.ts`. |
 
 ---
 
-## 3. LATENCY & PERFORMANCE BENCHMARK LEDGER
+## 6. LATENCY & PERFORMANCE BENCHMARK LEDGER
 
 *Note: All benchmark numbers are marked as `TBD — measured during benchmark phase`. Target budgets vs measured results are explicitly distinguished below.*
 
@@ -46,43 +101,6 @@
 | *photo_01.jpg* | *Pending Phase 7* | TBD | TBD | TBD | TBD | TBD |
 | *photo_02.jpg* | *Pending Phase 7* | TBD | TBD | TBD | TBD | TBD |
 | *photo_03.jpg* | *Pending Phase 7* | TBD | TBD | TBD | TBD | TBD |
-| *photo_04.jpg* | *Pending Phase 7* | TBD | TBD | TBD | TBD | TBD |
-
----
-
-## 4. API COST LEDGER
-
-*Note: API costs will be dynamically computed and recorded during live scan executions in Phase 4 and Phase 7.*
-
-| Scan Run ID | Crops Sent | VLM Model | Input Tokens | Output Tokens | Total Cost (USD) | Cost / Book |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| *scan_test_01* | *Pending Phase 7* | `gemini-2.5-flash` | TBD | TBD | TBD | TBD |
-| *scan_test_02* | *Pending Phase 7* | `gemini-2.5-flash` | TBD | TBD | TBD | TBD |
-| *scan_test_03* | *Pending Phase 7* | `gemini-2.5-flash` | TBD | TBD | TBD | TBD |
-
----
-
-## 5. TEST PHOTOGRAPH ACCURACY LEDGER
-
-| Photo Name | Books Visible | Spines Detected | VLM Read OK | Matched High Conf | Needs Review | Unmatched / Error | End-to-End Precision |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| *shelf_dense_1.jpg* | *Pending Phase 7* | TBD | TBD | TBD | TBD | TBD | TBD |
-| *shelf_angled_2.jpg* | *Pending Phase 7* | TBD | TBD | TBD | TBD | TBD | TBD |
-| *shelf_worn_3.jpg* | *Pending Phase 7* | TBD | TBD | TBD | TBD | TBD | TBD |
-
----
-
-## 6. RISKS & UNRESOLVED QUESTIONS
-
-1. **COCO Spine Separation (CV Risk)**:
-   - *Risk*: Closed-set COCO detector candidate may merge adjacent vertical book spines.
-   - *Mitigation Plan*: Benchmark YOLO26n on real test photos in Phase 3. If recall is inadequate, evaluate YOLO26s or time-boxed `IDEA-Research/grounding-dino-tiny`. Select ONE final detector.
-2. **OpenRouter Rate Limits & Timeout Handling**:
-   - *Risk*: VLM HTTP requests may time out or fail.
-   - *Mitigation Plan*: Set strict 10s timeout in `httpx`. Map provider timeouts explicitly to `extraction_failed` state (not `unreadable`), allowing user to retry crop or tag manually.
-3. **Ambiguity Margin Calibration**:
-   - *Risk*: Initial scoring thresholds ($S_1 \ge 0.82$, $\Delta \ge 0.15$) are provisional hypotheses.
-   - *Mitigation Plan*: Calibrate thresholds against `test_matcher.py` test suite in Phase 2 across the 6 mandatory catalog ambiguity patterns.
 
 ---
 
