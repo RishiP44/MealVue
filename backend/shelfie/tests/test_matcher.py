@@ -76,7 +76,7 @@ def test_catalog_deliberate_messy_categories():
         norm_t = normalize_title(e.title)
         title_authors.setdefault(norm_t, set()).add(e.author)
     same_title_diff_authors = [t for t, authors in title_authors.items() if len(authors) > 1]
-    assert len(same_title_diff_authors) >= 2, "Expected >= 2 titles with different authors (e.g. The Island, Nemesis, Inferno)"
+    assert len(same_title_diff_authors) >= 2, "Expected >= 2 titles with different authors (e.g. Island, Nemesis, Inferno)"
 
     # Category F: Author aliases
     with_aliases = [e for e in catalog if len(e.author_aliases) > 0]
@@ -185,6 +185,37 @@ def test_match_multiple_editions_perfect_tie_confidence():
     assert res.state == "needs_review"
 
 
+def test_match_omnibus_vs_individual_volume():
+    res = match_book(title="The Fellowship of the Ring", author="J. R. R. Tolkien")
+    assert res.best_candidate["title"] == "The Fellowship of the Ring"
+    assert res.best_candidate["catalog_id"] == "BK0003"
+
+
+def test_match_title_present_author_missing():
+    res = match_book(title="Designing Data-Intensive Applications", author=None)
+    assert res.state in ["matched", "needs_review"]
+    assert res.best_candidate["catalog_id"] == "BK0059"
+
+
+def test_match_author_present_title_missing():
+    res = match_book(title=None, author="James Clear")
+    assert res.state == "unmatched"  # Author alone is insufficient for direct match
+    assert res.confidence < REVIEW_THRESHOLD
+
+
+def test_match_both_fields_missing():
+    res = match_book(title=None, author=None)
+    assert res.state == "unmatched"
+    assert res.confidence == 0.0
+    assert res.best_candidate is None
+
+
+def test_match_noisy_vlm_ocr_transcription():
+    res = match_book(title="Sapens: Brief History", author="Yuval N Harari")
+    assert res.best_candidate["catalog_id"] == "BK0063"
+    assert res.state in ["matched", "needs_review"]
+
+
 # =====================================================================
 # 4. ADVERSARIAL SUBSTRING & WRONG AUTHOR TESTS
 # =====================================================================
@@ -223,8 +254,6 @@ def test_adversarial_wrong_author_guard():
     assert res_island.state in ["needs_review", "unmatched"]
 
 
-
-
 # =====================================================================
 # 5. CONFIDENCE SEMANTICS & INVARIANTS
 # =====================================================================
@@ -256,6 +285,24 @@ def test_confidence_semantics():
         assert 0.0 <= res.match_score <= 1.0
         assert 0.0 <= res.runner_up_score <= 1.0
         assert 0.0 <= res.margin <= 1.0
+
+
+def test_matcher_invariants():
+    """Enforce mathematical and structural invariants on MatchResult."""
+    res = match_book(title="Sapiens", author="Yuval Noah Harari")
+    assert 0.0 <= res.confidence <= 1.0
+    assert 0.0 <= res.signals["title_score"] <= 1.0
+    assert 0.0 <= res.signals["author_score"] <= 1.0
+    assert 0.0 <= res.signals["runner_up_score"] <= 1.0
+    assert 0.0 <= res.signals["margin"] <= 1.0
+    
+    # Alternatives are ordered descending by score
+    alt_scores = [alt["score"] for alt in res.alternatives]
+    assert alt_scores == sorted(alt_scores, reverse=True)
+    
+    # Best candidate is not duplicated in alternatives
+    alt_ids = [alt["catalog_id"] for alt in res.alternatives]
+    assert res.best_candidate["catalog_id"] not in alt_ids
 
 
 def test_row_order_invariance():
