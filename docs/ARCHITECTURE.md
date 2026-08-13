@@ -136,15 +136,32 @@ YOLO26 is released under the AGPL-3.0 license. This choice represents an explici
 ### 6.1 Text Normalization
 VLM transcriptions and `catalog.csv` records pass through `normalize_text()` (lowercasing, accent stripping via NFKD, punctuation removal, whitespace collapsing).
 
-### 6.2 Comparison & Scoring Formula (Provisional Hypotheses)
-Candidate scoring considers:
-- Normalized title similarity ($S_{title}$) over canonical and alternate titles.
-- Normalized author similarity ($S_{author}$) over canonical author and author aliases.
-- Missing field penalties.
-- Composite score: $S_{composite} = 0.65 \times S_{title} + 0.35 \times S_{author}$.
-- Runner-up margin: $\Delta = S_1 - S_2$.
+### 6.3 RapidFuzz Comparison & Heuristic Decision Confidence
+Given a VLM transcription ($T_{vlm}, A_{vlm}$) and catalog entry $C_k$:
 
-*Note: Initial thresholds ($S_1 \ge 0.82$, $\Delta \ge 0.15$, $S_1 < 0.50$) are provisional hypotheses to be calibrated in Phase 2 against catalog edge cases.*
+1. **Title Similarity Score ($S_{title}$)**:
+   - Evaluates normalized input against canonical and alternate titles using $0.50 \times \text{token\_set\_ratio} + 0.50 \times \text{token\_sort\_ratio}$. Length mismatches are penalized to prevent raw substring inflation. Exact match after stripping leading articles ('the', 'a', 'an') returns $1.0$.
+
+2. **Author Similarity Score ($S_{author}$)**:
+   - Evaluates normalized input against canonical author and author aliases using $0.60 \times \text{token\_set\_ratio} + 0.40 \times \text{token\_sort\_ratio}$. Supports `Lastname, Firstname` formatting.
+
+3. **Composite Match Score ($S_{composite}$ / `match_score`)**:
+   $$S_{composite} = (0.70 \times S_{title}) + (0.30 \times S_{author})$$
+   - *Author Conflict Guard*: If $S_{title} \ge 0.60$ and $S_{author} < 0.35$, $S_{composite}$ is capped at $0.45$.
+   - *Title Mismatch Guard*: If $S_{title} < 0.50$, $S_{composite}$ is capped at $0.45$.
+
+4. **Decision Confidence Heuristic (`confidence`) vs Similarity (`match_score`)**:
+   - `match_score`: Similarity strength of top candidate ($S_1$).
+   - `runner_up_score`: Similarity strength of second-best candidate ($S_2$).
+   - `margin`: $\Delta = S_1 - S_2$.
+   - `confidence`: Decision confidence in selecting the best catalog entry, incorporating ambiguity margin:
+     $$\text{confidence} = S_1 \times \left(0.50 + 0.50 \times \min\left(1.0, \frac{\Delta}{\text{MIN\_MARGIN}}\right)\right)$$
+   - An exact tie ($S_1=1.0, S_2=1.0, \Delta=0.0$) yields $\text{confidence} = 0.5000$ (low decision confidence) and routes to `needs_review`.
+
+### 6.4 Thresholds (Heuristically Tuned Against Test Matrix)
+- `MATCH_THRESHOLD = 0.80`
+- `REVIEW_THRESHOLD = 0.45`
+- `MIN_MARGIN = 0.12`
 
 ---
 

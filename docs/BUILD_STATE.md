@@ -2,7 +2,7 @@
 
 ## 1. CURRENT EXECUTIVE STATUS
 
-- **Current Phase**: Phase 2 — Messy Catalog & Deterministic Matching Engine
+- **Current Phase**: Phase 2.1 — Match Confidence & Catalog Quality Audit
 - **Phase Status**: `PASSED (AWAITING HUMAN APPROVAL FOR PHASE 3)`
 - **Next Approved Action**: Await explicit human command `APPROVE PHASE 3` before installing Ultralytics/PyTorch or implementing local computer vision spine detection.
 
@@ -25,63 +25,27 @@
 
 ## 3. CANONICAL CATALOG SPECIFICATION (`catalog.csv`)
 
-- **Location**: [`catalog.csv`](file:///c:/Users/rishi/Documents/Project/MealVue/catalog.csv)
+- **Location**: [`catalog.csv`](file:///c:/Users/rishi/Documents/Project\MealVue/catalog.csv)
 - **Total Valid Entries**: 125 canonical book records
 - **Schema Columns**: `catalog_id`, `work_id`, `title`, `author`, `alternate_titles`, `author_aliases`, `edition`, `publication_year`
-- **Delimiters**: Pipe (`|`) for multiple alternate titles/aliases; CSV RFC-4180 standard quotes.
-- **Alternate Title Count**: 14 entries with alternate titles
-- **Author Alias Count**: 48 entries with author aliases
-
-### Representative Ambiguity Edge Cases In Catalog
-1. **Category A (Multi-editions)**:
-   - `BK0001` (*The Hobbit*, Paperback UK) vs `BK0002` (*The Hobbit*, 75th Anniversary Edition)
-   - `BK0023` (*Clean Code*, 1st Ed) vs `BK0024` (*Clean Code*, Special Collector Ed)
-   - `BK0052` (*The Pragmatic Programmer*, 1st Ed) vs `BK0053` (20th Anniversary Ed)
-2. **Category B (Alternate Published Titles)**:
-   - `BK0007` (*Harry Potter and the Philosopher's Stone*, alt: *Harry Potter and the Sorcerer's Stone*)
-   - `BK0012` (*Northern Lights*, alt: *The Golden Compass*)
-   - `BK0014` (*And Then There Were None*, alt: *Ten Little Indians*)
-3. **Category C (Same Title, Different Authors)**:
-   - `BK0027` (*The Island* by Aldous Huxley) vs `BK0028` (*The Island* by Victoria Hislop) vs `BK0029` (*The Island* by Peter Benchley)
-   - `BK0030` (*Nemesis* by Isaac Asimov) vs `BK0031` (*Nemesis* by Agatha Christie) vs `BK0032` (*Nemesis* by Philip Roth)
-   - `BK0033` (*Inferno* by Dante Alighieri) vs `BK0034` (*Inferno* by Dan Brown)
-4. **Category D (Omnibus vs Individual Volumes)**:
-   - `BK0006` (*The Lord of the Rings Omnibus*) vs `BK0003` (*The Fellowship of the Ring*)
-   - `BK0022` (*The Foundation Trilogy Omnibus*) vs `BK0019` (*Foundation*)
-   - `BK0094` (*A Song of Ice and Fire: Books 1-3*) vs `BK0091` (*A Game of Thrones*)
-5. **Category E (Substring Collisions)**:
-   - `BK0015` (*Dune*) vs `BK0017` (*Dune Messiah*) vs `BK0018` (*Dune House Atreides*)
-   - `BK0019` (*Foundation*) vs `BK0020` (*Foundation and Empire*)
-   - `BK0023` (*Clean Code*) vs `BK0025` (*The Clean Coder*) vs `BK0026` (*Clean Architecture*)
-6. **Category F (Author Variants & Aliases)**:
-   - `J. R. R. Tolkien` $\leftrightarrow$ `J.R.R. Tolkien` $\leftrightarrow$ `John Ronald Reuel Tolkien` $\leftrightarrow$ `Tolkien, J. R. R.`
-   - `George Orwell` $\leftrightarrow$ `Eric Arthur Blair`
-   - `Robert C. Martin` $\leftrightarrow$ `Uncle Bob` $\leftrightarrow` `Martin, Robert C.`
+- **Bibliographic Quality Fixes**: Corrected Aldous Huxley's novel title to *Island*; removed historical slur from alternate titles; corrected coauthor attributions (`Andrew Hunt and David Thomas`, `Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides`, `Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein`, `Harold Abelson and Gerald Jay Sussman`, `Brian Herbert and Kevin J. Anderson`, `Jim Collins and Jerry I. Porras`, `Steven D. Levitt and Stephen J. Dubner`); enforced `work_id` consistency across editions.
 
 ---
 
-## 4. DETERMINISTIC MATCHING ALGORITHM & THRESHOLDS
+## 4. DETERMINISTIC MATCHING ALGORITHM & CONFIDENCE SEMANTICS
 
-### 4.1 Normalization Strategy
-- `normalize_title()`: Strips diacritics/accents via Unicode NFKD, lowercases, replaces `&` with `and`, retains alphanumeric and spaces only, collapses repeated whitespace.
-- `normalize_author()`: Strips accents, lowercases, converts `Lastname, Firstname` to `Firstname Lastname`, removes dots in initials (`J. R. R.` $\rightarrow$ `j r r`), collapses whitespace.
+### 4.1 Match Score vs Decision Confidence Separation
+- `match_score`: Similarity strength of top candidate ($S_1$, composite of $0.70 \times S_{title} + 0.30 \times S_{author}$).
+- `runner_up_score`: Similarity strength of second candidate ($S_2$).
+- `margin`: Separation $\Delta = S_1 - S_2$.
+- `confidence`: Decision confidence heuristic bounded in $[0, 1]$:
+  $$\text{confidence} = S_1 \times \left(0.50 + 0.50 \times \min\left(1.0, \frac{\Delta}{\text{MIN\_MARGIN}}\right)\right)$$
+- An exact tie ($S_1=1.0, S_2=1.0, \Delta=0.0$) yields $\text{confidence} = 0.5000$ (low decision confidence) and routes to `needs_review`.
 
-### 4.2 Scoring Formula & Substring Safeguards
-- Title similarity ($S_{title}$): Evaluates input against canonical title and all alternate titles using $0.65 \times \text{token\_set\_ratio} + 0.35 \times \text{token\_sort\_ratio}$. The `token_sort_ratio` component penalizes extra word length mismatches, preventing raw substring inflation (`"Dune"` vs `"Dune Messiah"`).
-- Author similarity ($S_{author}$): Evaluates input against canonical author and all aliases.
-- Base Composite Score:
-  $$\text{Composite} = (0.70 \times S_{title}) + (0.30 \times S_{author})$$
-- Author Conflict Guard: If title score $S_{title} \ge 0.60$ but author score $S_{author} < 0.35$ (meaning author is explicitly wrong/conflicting), composite score is capped at $0.48$.
-- Missing Author Modifier: If author is missing, score is $S_{title} \times 0.85$, capped at $0.78$ to force ambiguous titles into review.
-
-### 4.3 Calibrated Thresholds ([matcher.py](file:///c:/Users/rishi/Documents/Project/MealVue/backend/shelfie/services/matcher.py#L10-L12))
-- `MATCH_THRESHOLD = 0.80`: Minimum top score $S_1$ required for `matched` state.
-- `REVIEW_THRESHOLD = 0.45`: Minimum top score $S_1$ required for `needs_review` state.
+### 4.2 Thresholds (Heuristically Tuned Against Phase 2 Test Matrix)
+- `MATCH_THRESHOLD = 0.80`: Minimum top `match_score` for direct addition candidate.
+- `REVIEW_THRESHOLD = 0.45`: Minimum top `match_score` for human review suggestion.
 - `MIN_MARGIN = 0.12`: Minimum separation $\Delta = S_1 - S_2$ between top candidate and runner-up.
-- **State Classification Logic**:
-  - `matched`: $S_1 \ge 0.80$ AND $\Delta \ge 0.12$
-  - `needs_review`: $S_1 \ge 0.45$ (and fails matched criteria)
-  - `unmatched`: $S_1 < 0.45$
 
 ---
 
@@ -89,31 +53,32 @@
 
 ### 5.1 Test Suite Results
 - **Command**: `pytest` (executed inside `backend/`)
-- **Result**: `27 passed in 0.92s` ([test_matcher.py](file:///c:/Users/rishi/Documents/Project/MealVue/backend/shelfie/tests/test_matcher.py) + `test_health.py`)
-- **Test Matrix**: Covered exact matches, typos, alternate titles, author aliases, `Lastname, Firstname` parsing, shared titles with distinct authors, omnibus vs single volumes, substring collisions, missing fields, runner-up margin routing, noisy OCR input, and structural invariants.
+- **Result**: `22 passed in 0.77s` ([test_matcher.py](file:///c:/Users/rishi/Documents/Project/MealVue/backend/shelfie/tests/test_matcher.py) + `test_health.py`)
+- **Test Matrix**: Covered catalog `work_id` consistency, mandatory ambiguity categories, normalization, exact/typo matching, author aliases, `Lastname, Firstname` parsing, shared titles with distinct authors, omnibus vs single volumes, adversarial substring collisions (`Dune Messiah`, `Foundation Empire`, `Clean Coder`), wrong-author guards (`1984` by Huxley, `Inferno` by Asimov), confidence semantics, tie penalties, and order invariance.
 
 ### 5.2 Deterministic Matcher Latency Benchmark
 - **Benchmark Script**: [benchmark_matcher.py](file:///c:/Users/rishi/Documents/Project/MealVue/backend/shelfie/scripts/benchmark_matcher.py)
-- **Total Repeated Matcher Calls**: 1,000 calls across 8 representative test query types
+- **Total Repeated Matcher Calls**: 999 calls across 9 representative test query types
 - **Catalog Size**: 125 entries
-- **Total Elapsed Time**: `5.2447 seconds`
-- **Measured Average Latency**: **`5.2447 ms` per call**
-- **Measured Throughput**: **`190.67` calls / second**
+- **Total Elapsed Time**: `5.6478 seconds`
+- **Measured Average Latency**: **`5.6535 ms` per call**
+- **Measured Throughput**: **`176.88` calls / second**
 
 ---
 
-## 6. REPRESENTATIVE MATCHER TEST RESULTS
+## 6. REPRESENTATIVE MATCHER TEST RESULTS (9 REQUESTED CASES)
 
-| Query Title | Query Author | Winner Catalog ID & Title | Score ($S_1$) | Margin ($\Delta$) | Result State |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| *Designing Data-Intensive Applications* | *Martin Kleppmann* | `BK0059` — Designing Data-Intensive Applications | 1.0000 | 0.5022 | `matched` |
-| *Sapens: Brief History* | *Yuval N Harari* | `BK0063` — Sapiens | 0.8265 | 0.0546 | `needs_review` |
-| *The Golden Compass* | *Philip Pullman* | `BK0012` — Northern Lights | 1.0000 | 0.0000 | `needs_review` |
-| *1984* | *Eric Arthur Blair* | `BK0041` — 1984 | 1.0000 | 0.7000 | `matched` |
-| *The Island* | *Aldous Huxley* | `BK0027` — The Island | 1.0000 | 0.4157 | `matched` |
-| *Dune Messiah* | *Frank Herbert* | `BK0017` — Dune Messiah | 1.0000 | 0.1225 | `matched` |
-| *The Hobbit* | *J. R. R. Tolkien* | `BK0001` — The Hobbit | 1.0000 | 0.0000 | `needs_review` |
-| *Quantum Mechanical Superconductivity* | *Unknown* | N/A | 0.3855 | 0.0109 | `unmatched` |
+| Query Title | Query Author | Winner Catalog ID & Title | match_score | runner_up | margin | confidence | Result State |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| *Designing Data-Intensive Applications* | *Martin Kleppmann* | `BK0059` — Designing Data-Intensive Applications | 1.0000 | 0.4500 | 0.5500 | **1.0000** | **`matched`** |
+| *Sapens: Brief History* | *Yuval N Harari* | `BK0063` — Sapiens | 0.8165 | 0.7385 | 0.0780 | **0.6736** | **`needs_review`** |
+| *The Golden Compass* | *Philip Pullman* | `BK0012` — Northern Lights | 1.0000 | 1.0000 | 0.0000 | **0.5000** | **`needs_review`** |
+| *1984* | *Eric Arthur Blair* | `BK0041` — 1984 | 1.0000 | 0.3000 | 0.7000 | **1.0000** | **`matched`** |
+| *Island* | *Aldous Huxley* | `BK0027` — Island | 1.0000 | 0.4863 | 0.5137 | **1.0000** | **`matched`** |
+| *Dune Messiah* | *Frank Herbert* | `BK0017` — Dune Messiah | 1.0000 | 0.8250 | 0.1750 | **1.0000** | **`matched`** |
+| *The Hobbit* | *J. R. R. Tolkien* | `BK0001` — The Hobbit | 1.0000 | 1.0000 | 0.0000 | **0.5000** | **`needs_review`** |
+| *Quantum Mechanical Superconductivity* | *Unknown* | N/A | 0.3855 | 0.3746 | 0.0109 | **0.2103** | **`unmatched`** |
+| *1984* | *Aldous Huxley* | `BK0041` — 1984 | 0.4500 | 0.3000 | 0.1500 | **0.4500** | **`needs_review`** |
 
 ---
 

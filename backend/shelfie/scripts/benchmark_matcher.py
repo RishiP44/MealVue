@@ -20,33 +20,35 @@ def run_benchmark():
         ("Sapens: Brief History", "Yuval N Harari"),                    # 2. Typo/noisy transcription
         ("The Golden Compass", "Philip Pullman"),                       # 3. Alternate title
         ("1984", "Eric Arthur Blair"),                                 # 4. Author alias
-        ("The Island", "Aldous Huxley"),                               # 5. Shared title / correct author
+        ("Island", "Aldous Huxley"),                                   # 5. Shared title / correct author
         ("Dune Messiah", "Frank Herbert"),                             # 6. Substring collision
         ("The Hobbit", "J. R. R. Tolkien"),                            # 7. Ambiguous editions
         ("Quantum Mechanical Superconductivity", "Unknown"),           # 8. Unrelated book
+        ("1984", "Aldous Huxley"),                                     # 9. Wrong-author exact-title input
     ]
 
     print("=========================================================")
-    print(f"SHELFIE CATALOG MATCHER BENCHMARK")
+    print(f"SHELFIE CATALOG MATCHER BENCHMARK (PHASE 2.1)")
     print("=========================================================")
     print(f"Catalog Entry Count: {len(catalog)}")
     print(f"Test Query Suite: {len(test_queries)} representative cases")
     print("---------------------------------------------------------")
 
-    # Run query preview
-    print("\nREPRESENTATIVE CASE PREVIEW:")
+    print("\nREPRESENTATIVE CASE PREVIEW (9 REQUESTED CASES):")
     for title, author in test_queries:
         res = matcher.match_book(title, author)
         best_id = res.best_candidate["catalog_id"] if res.best_candidate else "NONE"
         best_title = res.best_candidate["title"] if res.best_candidate else "N/A"
-        runner_up = res.signals.get("runner_up_score", 0.0)
-        margin = res.signals.get("margin", 0.0)
         print(f"Query: [{title} | {author}]")
-        print(f"  -> State: {res.state:<12} Conf: {res.confidence:.4f}  Margin: {margin:.4f}")
-        print(f"  -> Best:  {best_id} - {best_title} (S1={res.confidence:.4f}, S2={runner_up:.4f})\n")
+        print(f"  -> Winner:       {best_id} - {best_title}")
+        print(f"  -> match_score:  {res.match_score:.4f}")
+        print(f"  -> runner_up:    {res.runner_up_score:.4f}")
+        print(f"  -> margin:       {res.margin:.4f}")
+        print(f"  -> confidence:   {res.confidence:.4f}")
+        print(f"  -> state:        {res.state}\n")
 
     # Measure performance over repeated calls
-    iterations = 125 # 125 * 8 = 1,000 matcher calls
+    iterations = 111 # 111 * 9 = 999 ~ 1,000 matcher calls
     total_calls = len(test_queries) * iterations
     
     start_time = time.perf_counter()

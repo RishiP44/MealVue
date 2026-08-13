@@ -30,14 +30,15 @@ This document maintains an honest, transparent record of how artificial intellig
   - Mobile API boundary definition (`mobile/src/config/api.ts`) and dev connectivity screen (`mobile/App.tsx`).
   - Clean startup verification and environment documentation (`README.md`, `BUILD_STATE.md`).
 
-### Phase 2 — Messy Catalog & Deterministic Matching Engine
+### Phase 2 & Phase 2.1 — Messy Catalog & Deterministic Matching Engine Audit
 - **AI Tool**: Antigravity (Gemini 3.6 Flash).
 - **Tasks**:
   - AI tools assisted with generating an initial candidate set of 125 commonly owned books and deliberate ambiguity cases (multi-editions, US/UK alternate titles, shared titles across different authors, omnibus vs single volumes, substring collisions, and author aliases). Entries were structurally formatted via `csv.writer` and validated.
   - Catalog loader and validator service implementation (`backend/shelfie/services/catalog.py`).
   - Text and author normalization module development (`normalize_title`, `normalize_author`).
-  - Deterministic RapidFuzz matcher service implementation with ambiguity margin scoring and author conflict safeguards (`backend/shelfie/services/matcher.py`).
-  - Unit test suite creation in `backend/shelfie/tests/test_matcher.py` (23 tests covering all catalog ambiguity categories and invariants).
+  - Deterministic RapidFuzz matcher service implementation with ambiguity margin scoring and author/title conflict safeguards (`backend/shelfie/services/matcher.py`).
+  - Phase 2.1 quality corrections: Corrected coauthor attributions (`Andrew Hunt and David Thomas`, `Erich Gamma et al.`, `CLRS`), title correction (*Island* by Aldous Huxley), removed historical slur from alternate titles, audited `work_id` consistency, separated `match_score` from decision `confidence` heuristic, penalized ties to low decision confidence (0.5000), and added wrong-author and adversarial substring test cases.
+  - Unit test suite creation in `backend/shelfie/tests/test_matcher.py` (22 tests covering all catalog ambiguity categories, invariants, and adversarial edge cases).
   - Matcher benchmarking script development (`backend/shelfie/scripts/benchmark_matcher.py`) and empirical latency measurement.
 
 ---

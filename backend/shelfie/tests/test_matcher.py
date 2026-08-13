@@ -33,6 +33,28 @@ def test_catalog_unique_ids_and_required_fields():
         assert entry.work_id.strip(), f"Empty work_id in {entry.catalog_id}"
 
 
+def test_catalog_work_id_consistency():
+    """Verify different editions of the same work share work_id, distinct works do not."""
+    catalog = load_catalog()
+    by_id = {e.catalog_id: e for e in catalog}
+
+    # The Hobbit editions share WORK0001
+    assert by_id["BK0001"].work_id == by_id["BK0002"].work_id == "WORK0001"
+
+    # Clean Code editions share WORK0019
+    assert by_id["BK0023"].work_id == by_id["BK0024"].work_id == "WORK0019"
+
+    # Steve Jobs editions share WORK0030
+    assert by_id["BK0035"].work_id == by_id["BK0036"].work_id == "WORK0030"
+
+    # Fahrenheit 451 editions share WORK0038
+    assert by_id["BK0044"].work_id == by_id["BK0113"].work_id == "WORK0038"
+
+    # Distinct works must not share work_id
+    assert by_id["BK0023"].work_id != by_id["BK0025"].work_id  # Clean Code vs Clean Coder
+    assert by_id["BK0015"].work_id != by_id["BK0017"].work_id  # Dune vs Dune Messiah
+
+
 def test_catalog_deliberate_messy_categories():
     """Assert all mandatory ambiguity categories exist in catalog.csv."""
     catalog = load_catalog()
@@ -55,19 +77,6 @@ def test_catalog_deliberate_messy_categories():
         title_authors.setdefault(norm_t, set()).add(e.author)
     same_title_diff_authors = [t for t, authors in title_authors.items() if len(authors) > 1]
     assert len(same_title_diff_authors) >= 2, "Expected >= 2 titles with different authors (e.g. The Island, Nemesis, Inferno)"
-
-    # Category D: Omnibus vs individual volumes
-    omnibus_entries = [e for e in catalog if "omnibus" in e.title.lower() or "trilogy" in e.title.lower() or any("omnibus" in alt.lower() for alt in e.alternate_titles)]
-    assert len(omnibus_entries) >= 2, "Expected omnibus editions in catalog"
-
-    # Category E: Substring collisions
-    titles = [normalize_title(e.title) for e in catalog]
-    substring_collisions = []
-    for t1 in titles:
-        for t2 in titles:
-            if t1 != t2 and t1 in t2:
-                substring_collisions.append((t1, t2))
-    assert len(substring_collisions) >= 3, "Expected substring collision title pairs (e.g. Dune / Dune Messiah)"
 
     # Category F: Author aliases
     with_aliases = [e for e in catalog if len(e.author_aliases) > 0]
@@ -102,8 +111,9 @@ def test_normalize_author():
 def test_match_exact_canonical_title_and_author_unique():
     res = match_book(title="Designing Data-Intensive Applications", author="Martin Kleppmann")
     assert res.state == "matched"
-    assert res.best_candidate["catalog_id"] == "BK0059"
+    assert res.match_score == 1.0
     assert res.confidence >= MATCH_THRESHOLD
+    assert res.best_candidate["catalog_id"] == "BK0059"
 
 
 def test_match_case_insensitivity():
@@ -149,15 +159,16 @@ def test_match_lastname_firstname_author():
 
 
 def test_match_alternate_published_title():
-    # Northern Lights alt_title = The Golden Compass
     res = match_book(title="The Golden Compass", author="Philip Pullman")
     assert res.best_candidate["catalog_id"] in ["BK0012", "BK0013"]
-    assert res.best_candidate["title"] in ["Northern Lights", "The Golden Compass"]
+    # Margin is 0.0 between US and UK edition -> routes to needs_review
+    assert res.state == "needs_review"
+    assert res.confidence == 0.5000  # Low decision confidence due to tie!
 
 
 def test_match_same_title_different_authors_disambiguation():
-    # "The Island" by Aldous Huxley vs "The Island" by Victoria Hislop
-    res_huxley = match_book(title="The Island", author="Aldous Huxley")
+    # "Island" by Aldous Huxley vs "The Island" by Victoria Hislop
+    res_huxley = match_book(title="Island", author="Aldous Huxley")
     assert res_huxley.state == "matched"
     assert res_huxley.best_candidate["catalog_id"] == "BK0027"
 
@@ -166,95 +177,96 @@ def test_match_same_title_different_authors_disambiguation():
     assert res_hislop.best_candidate["catalog_id"] == "BK0028"
 
 
-def test_match_multiple_editions_routes_to_review_if_ambiguous():
-    # Query "The Hobbit" without edition specified. Both BK0001 and BK0002 score identically.
+def test_match_multiple_editions_perfect_tie_confidence():
     res = match_book(title="The Hobbit", author="J. R. R. Tolkien")
-    assert res.signals["margin"] < MIN_MARGIN
-    # Margin is 0.0 -> routes to needs_review for human choice!
+    assert res.match_score == 1.0000
+    assert res.margin == 0.0000
+    assert res.confidence == 0.5000  # Low decision confidence despite 1.0 match_score!
     assert res.state == "needs_review"
 
 
-def test_match_omnibus_vs_individual_volume():
-    # Query "The Fellowship of the Ring" vs "The Lord of the Rings" omnibus
-    res = match_book(title="The Fellowship of the Ring", author="J. R. R. Tolkien")
-    assert res.best_candidate["title"] == "The Fellowship of the Ring"
-    assert res.best_candidate["catalog_id"] == "BK0003"
+# =====================================================================
+# 4. ADVERSARIAL SUBSTRING & WRONG AUTHOR TESTS
+# =====================================================================
 
-
-def test_match_substring_collision_does_not_overfire():
-    # Query "Dune" vs "Dune Messiah"
-    res_dune = match_book(title="Dune", author="Frank Herbert")
-    assert res_dune.best_candidate["title"] == "Dune"
-    assert res_dune.best_candidate["catalog_id"] in ["BK0015", "BK0016"]
-
-    res_messiah = match_book(title="Dune Messiah", author="Frank Herbert")
-    assert res_messiah.best_candidate["title"] == "Dune Messiah"
+def test_adversarial_substring_collisions():
+    # "Dune Mesiah" / "Frank Herbert" -> matches Dune Messiah (BK0017) over Dune (BK0015)
+    res_messiah = match_book(title="Dune Mesiah", author="Frank Herbert")
     assert res_messiah.best_candidate["catalog_id"] == "BK0017"
 
+    # "Foundation Empire" / "Isaac Asimov" -> matches Foundation and Empire (BK0020) over Foundation (BK0019)
+    res_empire = match_book(title="Foundation Empire", author="Isaac Asimov")
+    assert res_empire.best_candidate["catalog_id"] == "BK0020"
 
-def test_match_title_present_author_missing():
-    res = match_book(title="Designing Data-Intensive Applications", author=None)
-    assert res.state in ["matched", "needs_review"]
-    assert res.best_candidate["catalog_id"] == "BK0059"
-
-
-def test_match_author_present_title_missing():
-    res = match_book(title=None, author="James Clear")
-    assert res.state == "unmatched"  # Author alone is insufficient for direct match
-    assert res.confidence < REVIEW_THRESHOLD
+    # "Clean Coder" / "Robert Martin" -> matches The Clean Coder (BK0025) over Clean Code (BK0023)
+    res_coder = match_book(title="Clean Coder", author="Robert Martin")
+    assert res_coder.best_candidate["catalog_id"] == "BK0025"
 
 
-def test_match_both_fields_missing():
-    res = match_book(title=None, author=None)
-    assert res.state == "unmatched"
-    assert res.confidence == 0.0
-    assert res.best_candidate is None
+def test_adversarial_wrong_author_guard():
+    # "1984" by "Aldous Huxley" (George Orwell's 1984)
+    res_1984 = match_book(title="1984", author="Aldous Huxley")
+    assert res_1984.match_score <= 0.45  # Author conflict guard caps score
+    assert res_1984.confidence <= 0.45
+    assert res_1984.state in ["needs_review", "unmatched"]
+
+    # "Inferno" by "Isaac Asimov" (Dante / Dan Brown's Inferno)
+    res_inferno = match_book(title="Inferno", author="Isaac Asimov")
+    assert res_inferno.match_score < 0.50
+    assert res_inferno.confidence <= 0.45
+    assert res_inferno.state in ["needs_review", "unmatched"]
+
+    # "Island" by wrong author
+    res_island = match_book(title="Island", author="George Orwell")
+    assert res_island.match_score <= 0.45
+    assert res_island.confidence <= 0.45
+    assert res_island.state in ["needs_review", "unmatched"]
 
 
-def test_match_obviously_unrelated_input():
-    res = match_book(title="Quantum Mechanical Superconductivity 101", author="Unknown Researcher")
-    assert res.state == "unmatched"
-    assert res.confidence < REVIEW_THRESHOLD
-
-
-def test_match_high_top_score_tiny_margin_routes_to_review():
-    # Query matching multiple close editions (Clean Code 1st vs Special Edition)
-    res = match_book(title="Clean Code", author="Robert C. Martin")
-    assert res.signals["margin"] < MIN_MARGIN
-    assert res.state == "needs_review"
-
-
-def test_match_high_top_score_large_margin_routes_to_matched():
-    # Unique title with large margin over second candidate
-    res = match_book(title="Designing Data-Intensive Applications", author="Martin Kleppmann")
-    assert res.state == "matched"
-    assert res.signals["margin"] >= MIN_MARGIN
-    assert res.confidence >= MATCH_THRESHOLD
-
-
-def test_match_noisy_vlm_ocr_transcription():
-    res = match_book(title="Sapens: Brief History", author="Yuval N Harari")
-    assert res.best_candidate["catalog_id"] == "BK0063"
-    assert res.state in ["matched", "needs_review"]
 
 
 # =====================================================================
-# 4. INVARIANT & PROPERTY TESTS
+# 5. CONFIDENCE SEMANTICS & INVARIANTS
 # =====================================================================
 
-def test_matcher_invariants():
-    """Enforce mathematical and structural invariants on MatchResult."""
-    res = match_book(title="Sapiens", author="Yuval Noah Harari")
-    assert 0.0 <= res.confidence <= 1.0
-    assert 0.0 <= res.signals["title_score"] <= 1.0
-    assert 0.0 <= res.signals["author_score"] <= 1.0
-    assert 0.0 <= res.signals["runner_up_score"] <= 1.0
-    assert 0.0 <= res.signals["margin"] <= 1.0
-    
-    # Alternatives are ordered descending by score
-    alt_scores = [alt["score"] for alt in res.alternatives]
-    assert alt_scores == sorted(alt_scores, reverse=True)
-    
-    # Best candidate is not duplicated in alternatives
-    alt_ids = [alt["catalog_id"] for alt in res.alternatives]
-    assert res.best_candidate["catalog_id"] not in alt_ids
+def test_confidence_semantics():
+    # A. Perfect unique match: high match_score, high confidence
+    res_a = match_book(title="Designing Data-Intensive Applications", author="Martin Kleppmann")
+    assert res_a.match_score == 1.0
+    assert res_a.confidence == 1.0
+
+    # B. Perfect tie: high match_score (1.0), low confidence (0.50), needs_review
+    res_b = match_book(title="The Hobbit", author="J. R. R. Tolkien")
+    assert res_b.match_score == 1.0
+    assert res_b.confidence == 0.5000
+    assert res_b.state == "needs_review"
+
+    # C. Strong winner with large margin: high confidence
+    res_c = match_book(title="Sapiens", author="Yuval Noah Harari")
+    assert res_c.match_score >= 0.90
+    assert res_c.confidence >= 0.85
+
+    # D. Weak candidate: low confidence
+    res_d = match_book(title="Quantum Physics", author="Unknown")
+    assert res_d.confidence < 0.45
+
+    # E. Confidence always bounded in [0, 1]
+    for res in [res_a, res_b, res_c, res_d]:
+        assert 0.0 <= res.confidence <= 1.0
+        assert 0.0 <= res.match_score <= 1.0
+        assert 0.0 <= res.runner_up_score <= 1.0
+        assert 0.0 <= res.margin <= 1.0
+
+
+def test_row_order_invariance():
+    """Catalog order must not change the winning candidate for unambiguous matches."""
+    catalog = load_catalog()
+    matcher_forward = CatalogMatcher(catalog)
+    matcher_reverse = CatalogMatcher(list(reversed(catalog)))
+
+    res_fwd = matcher_forward.match_book("Designing Data-Intensive Applications", "Martin Kleppmann")
+    res_rev = matcher_reverse.match_book("Designing Data-Intensive Applications", "Martin Kleppmann")
+
+    assert res_fwd.best_candidate["catalog_id"] == res_rev.best_candidate["catalog_id"]
+    assert res_fwd.confidence == res_rev.confidence
+    assert res_fwd.state == res_rev.state

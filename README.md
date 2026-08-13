@@ -84,17 +84,18 @@ The mobile app configures its backend base URL in [`mobile/src/config/api.ts`](f
 - **Deliberate Ambiguity Edge Cases**:
   - **Multiple Editions**: *The Hobbit* (UK Paperback vs 75th Anniversary Edition), *Clean Code* (1st Ed vs Special Collector Ed).
   - **Alternate Titles**: *Northern Lights* / *The Golden Compass*, *Harry Potter and the Philosopher's Stone* / *Sorcerer's Stone*.
-  - **Same Title, Different Authors**: *The Island* (Aldous Huxley vs Victoria Hislop vs Peter Benchley), *Nemesis* (Isaac Asimov vs Agatha Christie vs Philip Roth).
+  - **Same Title, Different Authors**: *Island* (Aldous Huxley vs Victoria Hislop vs Peter Benchley), *Nemesis* (Isaac Asimov vs Agatha Christie vs Philip Roth).
   - **Omnibus vs Individual Volumes**: *The Lord of the Rings Omnibus* vs *The Fellowship of the Ring*.
   - **Substring Collisions**: *Dune* vs *Dune Messiah* vs *Dune House Atreides*.
   - **Author Representations**: Initials, accents, transliterations, *Lastname, Firstname* ordering, and aliases (*George Orwell* / *Eric Arthur Blair*, *Robert C. Martin* / *Uncle Bob*).
-- **Matching Algorithm**: RapidFuzz fuzzy token ratio scoring with custom author conflict caps, missing field modifiers, and calibrated ambiguity margin routing ($S_1 \ge 0.80$, $\Delta \ge 0.12$).
+- **Matching Algorithm & Confidence Semantics**: RapidFuzz fuzzy token ratio scoring with title/author mismatch guards, separate `match_score` vs `confidence` calculation, and heuristically tuned ambiguity margin routing ($S_1 \ge 0.80$, $\Delta \ge 0.12$). Exact ties between multiple editions route to `needs_review` with low decision confidence ($0.50$).
 
 ---
 
 ## Measured Performance Benchmarks
 
-- **Deterministic Catalog Matcher Latency**: **`5.24 ms` per call** (Measured over 1,000 calls across 125 catalog entries; 190.67 calls/sec throughput)
+- **Deterministic Catalog Matcher Latency**: **`5.65 ms` per call** (Measured over 999 calls across 125 catalog entries; 176.88 calls/sec throughput)
 - **Local CV Latency**: `TBD — measured during benchmark phase` (Phase 3)
 - **Hosted VLM Latency**: `TBD — measured during benchmark phase` (Phase 4)
 - **Estimated API Cost per Scan**: `TBD — measured during benchmark phase` (Phase 4)
+
