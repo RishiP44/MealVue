@@ -64,6 +64,15 @@ Shelfie is a mobile application and API pipeline that turns a photograph of a bo
 - **Spatial Sorting**: Deterministically sorts detections top-to-bottom (shelf height bands) and left-to-right, assigning stable IDs (`book_001`, `book_002`, ...).
 - **AGPL Licensing Note**: Ultralytics uses AGPL-3.0 licensing; selected for a time-boxed take-home portfolio exercise. Proprietary production deployment would require separate licensing review or a permissive alternative model.
 
+## Hosted Vision-Language Extraction Methodology (Phase 4)
+
+- **Provider**: OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`) using HTTPX.
+- **Model**: `google/gemini-2.5-flash` (`VLM_MODEL` environment variable).
+- **Batching & Compression**: Batches up to 5 crops (`VLM_BATCH_SIZE=5`) encoded as base64 JPEG data URLs.
+- **Structured Schema**: Enforces strict JSON Schema for transcription (`crop_id`, `title`, `author`, `readability`).
+- **Resilience**: 1 retry for transient rate limits (429), timeouts, and 5xx errors; non-retriable immediate failure for 401/400.
+- **Decoupled Architecture**: VLM transcribes raw visible text without receiving or influencing `catalog.csv`.
+
 ---
 
 ## Measured Performance Benchmarks
@@ -73,9 +82,10 @@ Shelfie is a mobile application and API pipeline that turns a photograph of a bo
 - **Manual Usable-Crop Recall (Audited Micro)**: **`15.70%`** (38 unique usable spines out of 242 visible spines; Macro: `17.25%`)
 - **Manual Precision Proxy**: **`71.70%`** (38 unique usable crops / 53 detected boxes, 0 false positives)
 - **Zero-Detection Images**: 2 of 5 (`shelf_angle.jpg`, `shelf_dense.jpg`)
-- **Grounding DINO Tiny Warm CPU Latency**: **`11,143.74 ms`** (Evaluated in Phase 3.2; 7.02% micro recall, 693 MB weights)
 - **Deterministic Catalog Matcher Latency**: **`5.65 ms` per call** (Measured over 999 calls; 176.88 calls/sec throughput)
-- **Hosted VLM Latency**: `TBD — measured during benchmark phase` (Phase 4)
-- **Estimated API Cost per Scan**: `TBD — measured during benchmark phase` (Phase 4)
+- **Hosted VLM Request Latency**: **`1,849.86 ms` median** (`1,722.12 ms` mean per 5-crop batch)
+- **Hosted VLM Cost per Tested Crop**: **`$0.000218`** (`$0.0218` per 100 crops)
+- **Estimated Typical 25-Crop Scan API Cost**: **`$0.0055`** (~half a cent per complete scan)
+- **Batching Latency Advantage**: **`3.07x faster`** wall-clock throughput (`batch_size=5` vs `batch_size=1`) with **`48.2% token savings`**
 
 

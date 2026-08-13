@@ -65,6 +65,14 @@ This document maintains an honest, transparent record of how artificial intellig
   - Selected `YOLO26n` (`yolo26n.pt`) operating at `conf = 0.20` as the final local detector based on empirical evidence (+40.7% usable spines vs baseline, 0 false positives, 340.59 ms latency, clean 5.3 MB footprint).
   - Exported comprehensive model comparison matrix (`test-images/model_comparison.csv`).
 
+### Phase 4 — Hosted Vision-Language Extraction
+- **AI Tool**: Antigravity (Gemini 3.7 Flash).
+- **Tasks**:
+  - Implemented OpenRouter Vision-Language service (`backend/shelfie/services/vlm.py`) integrating `google/gemini-2.5-flash` with strict JSON Schema output.
+  - Implemented base64 image encoding, batched crop request assembly, and resilient retry logic with failure classification (`unreadable` vs `extraction_failed`).
+  - Created mocked unit test suite (`backend/shelfie/tests/test_vlm.py`) covering retries, timeouts, 429/500/401 handling, nullable fields, and malformed JSON recovery (12 tests, 0 paid calls).
+  - Built and executed real-crop benchmark script (`backend/shelfie/scripts/benchmark_vlm.py`), collecting empirical token usage, provider costs, and latency metrics across 12 representative crops, exported to `test-images/vlm_evaluation.csv`.
+
 ---
 
 ## Developer Oversight & Code Attribution Statement

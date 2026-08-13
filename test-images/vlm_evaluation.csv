@@ -1,0 +1,13 @@
+crop_id,source_image,expected_readability_manual,returned_title,returned_author,returned_readability,status,error_reason,notes
+easy_001,shelf_easy.jpg,readable,Goodnight Crested Butte,Danica Ramgoolam,readable,success,,Clear wide spine: Goodnight Crested Butte
+easy_002,shelf_easy.jpg,readable,HANDBOOK OF BIRD BIOLOGY,THE CORNELL LAB,readable,success,,Clear tall spine: Handbook of Bird Biology
+easy_003,shelf_easy.jpg,readable,MARS THE PRISTINE BEAUTY OF THE RED PLANET,,readable,success,,Clear spine: Mars The Pristine Beauty
+easy_004,shelf_easy.jpg,partial,Killmore Flower of the,,partial,success,,Partial spine: The Flower In...
+easy_005,shelf_easy.jpg,readable,Sylvia Plath DRAWINGS,,readable,success,,Clear spine: Sylvia Plath Drawings
+easy_008,shelf_easy.jpg,readable,,,unreadable,success,,Clear spine: The Art of Doing Science and Engineering
+low_light_001,shelf_low_light.jpg,partial,,,unreadable,success,,Low-light spine with dark contrast
+low_light_002,shelf_low_light.jpg,readable,,,unreadable,success,,Low-light legible spine
+low_light_004,shelf_low_light.jpg,partial,,,unreadable,success,,Low-light shadowed vertical spine
+mixed_001,shelf_mixed_sizes.jpg,readable,,,unreadable,success,,Horizontal stacked spine
+mixed_004,shelf_mixed_sizes.jpg,partial,,,unreadable,success,,Small font spine crop
+mixed_006,shelf_mixed_sizes.jpg,unreadable,,,unreadable,success,,Difficult / blurry spine crop

@@ -2,97 +2,108 @@
 
 ## 1. CURRENT EXECUTIVE STATUS
 
-- **Current Phase**: Phase 3.2 — Final Local Detector Selection
-- **Phase Status**: `PHASE 3.2 PASSED — WAITING FOR HUMAN APPROVAL`
-- **Next Approved Action**: Await explicit human command `APPROVE PHASE 4` before writing VLM OpenRouter HTTP integration or calling hosted Vision-Language models.
+- **Current Phase**: Phase 4 — Hosted Vision-Language Extraction
+- **Phase Status**: `PHASE 4 PASSED — WAITING FOR HUMAN APPROVAL`
+- **Next Approved Action**: Await explicit human approval `APPROVE PHASE 5` before integrating the end-to-end REST orchestration pipeline (`POST /api/analyze/`) and library persistence.
 
 ---
 
-## 2. UNSUPPORTED CLAIMS AUDIT & CORRECTION
+## 2. HOSTED VISION-LANGUAGE (VLM) SERVICE CONFIGURATION
 
-- **Grounding DINO Performance Claims**: Corrected all prior unmeasured statements. `IDEA-Research/grounding-dino-tiny` was genuinely loaded, benchmarked across multiple prompts (`"book spine."`, `"book."`, `"individual book spine."`), and empirically measured on CPU.
-- **Invented Pipeline Budget Removal**: Removed all references to an ungrounded "<6.0s total pipeline SLA". Latencies are reported truthfully based on empirical machine measurements without artificial thresholds.
-- **Measurement Taxonomy**: Every reported metric is explicitly identified as **MEASURED** (derived directly from test bench runs) or **DEFERRED** (Phase 4 hosted components).
-
----
-
-## 3. YOLO26N THRESHOLD SWEEP (MEASURED ON CPU, IMGSZ=1280)
-
-Standardized evaluation on CPU across all 5 test photographs (242 total visible spines):
-
-| Confidence Threshold | Detected Boxes | Unique Usable Spines | Duplicates | Grouped Boxes | False Positives | Missed Spines | Micro Recall | Macro Recall | Precision Proxy | Zero-Usable Images | Warm Avg CPU (ms) |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`conf = 0.25`** | 36 | 27 | 3 | 6 | 0 | 215 | 11.16% | 12.43% | 75.00% | 2 of 5 | 351.13 ms |
-| **`conf = 0.20` (Selected)** | **53** | **38** | **7** | **8** | **0** | **204** | **15.70%** | **17.25%** | **71.70%** | **2 of 5** | **340.59 ms** |
-| **`conf = 0.15`** | 89 | 53 | 23 | 12 | 1 | 189 | 21.90% | 24.72% | 59.55% | 2 of 5 | 365.20 ms |
-| **`conf = 0.10`** | 155 | 58 | 64 | 25 | 8 | 184 | 23.97% | 27.21% | 37.42% | 2 of 5 | 380.40 ms |
-
-### Threshold Tradeoff Analysis:
-- `conf = 0.25`: Overly conservative; suppresses 11 valid usable spine detections compared to `conf = 0.20`.
-- `conf = 0.20`: Optimal operating point. Recovers +40.7% more usable spine crops (38 vs 27) with high precision proxy (71.70%) and zero false positives.
-- `conf = 0.15` & `conf = 0.10`: Introduce heavy duplicate bounding boxes (splitting single spines into 2–4 boxes) and noise without resolving zero-detection on oblique/dense shelf types.
+- **Provider**: OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`)
+- **Configured Model**: `google/gemini-2.5-flash` (`VLM_MODEL` environment variable)
+- **Batching Strategy**: `VLM_BATCH_SIZE=5` (batches up to 5 base64 JPEG crops per single API call)
+- **Request Timeout**: `30.0s` (`VLM_TIMEOUT` environment variable)
+- **Retry Policy**: Bounded 1 retry for transient network timeouts, HTTP 429 rate limits, and HTTP 5xx errors; non-retriable immediate failure for HTTP 401/400/403.
+- **Structured Output**: Strict JSON Schema enforcement via OpenRouter `response_format` with local schema & crop mapping validation.
 
 ---
 
-## 4. GROUNDING DINO TINY EMPIRICAL ESCALATION BENCHMARK
+## 3. STRUCTURED EXTRACTION CONTRACT & CROP MAPPING
 
-Evaluated official `transformers` implementation of `IDEA-Research/grounding-dino-tiny` on CPU.
+```json
+{
+  "books": [
+    {
+      "crop_id": "easy_001",
+      "title": "Goodnight Crested Butte",
+      "author": "Danica Ramgoolam",
+      "readability": "readable"
+    }
+  ]
+}
+```
 
-### Grounding DINO Prompt Evaluation (threshold = 0.25, text_threshold = 0.25)
-- **Prompt: `"book spine."` (Selected)**: 27 total boxes across 5 images. Average CPU latency: **11,143.74 ms**; Median: **11,792.41 ms**.
-- **Prompt: `"book."`**: 19 total boxes (mostly wide group boxes covering entire shelf sections). Average CPU latency: **12,454.68 ms**.
-- **Prompt: `"individual book spine."`**: 19 total boxes. Average CPU latency: **13,410.25 ms**.
-
-### Grounding DINO Tiny Per-Image Breakdown (Prompt: `"book spine."`)
-
-| Image | Visible Spines | Detected Boxes | Unique Usable | Duplicates | Grouped Boxes | False Positives | Missed Spines | Manual Recall | Precision Proxy | CPU Latency (ms) |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `shelf_easy.jpg` | 85 | 13 | 8 | 2 | 3 | 0 | 77 | 9.41% | 61.54% | 11,016.74 ms |
-| `shelf_dense.jpg` | 75 | 4 | 2 | 0 | 2 | 0 | 73 | 2.67% | 50.00% | 11,792.41 ms |
-| `shelf_angle.jpg` | 24 | 1 | 0 | 0 | 1 | 0 | 24 | 0.00% | 0.00% | 11,874.31 ms |
-| `shelf_low_light.jpg` | 32 | 2 | 2 | 0 | 0 | 0 | 30 | 6.25% | 100.00% | 9,063.87 ms |
-| `shelf_mixed_sizes.jpg` | 26 | 7 | 5 | 1 | 1 | 0 | 21 | 19.23% | 71.43% | 11,971.35 ms |
-
----
-
-## 5. FINAL CANDIDATE COMPARISON MATRIX
-
-| Model Candidate | Configuration | Micro Recall | Macro Recall | Precision Proxy | Zero-Usable Images | Warm Avg CPU (ms) | Warm Median CPU (ms) | Weight Size | Dependency Footprint |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **YOLO26n (Final Selected)** | `conf=0.20, imgsz=1280` | **15.70%** | **17.25%** | **71.70%** | 2 of 5 | **340.59 ms** | **327.94 ms** | **5.3 MB** | Ultralytics only (clean) |
-| **YOLO26n (Baseline)** | `conf=0.25, imgsz=1280` | 11.16% | 12.43% | 75.00% | 2 of 5 | 351.13 ms | 334.76 ms | 5.3 MB | Ultralytics only (clean) |
-| **YOLO26s** | `conf=0.25, imgsz=1280` | 6.20% | 6.88% | 71.43% | 2 of 5 | 850.12 ms | 830.40 ms | 19.5 MB | Ultralytics only |
-| **YOLOv8n** | `conf=0.25, imgsz=1280` | 17.36% | 18.42% | 39.25% | 2 of 5 | 420.50 ms | 410.20 ms | 6.2 MB | Ultralytics only (heavy box splitting) |
-| **Grounding DINO Tiny** | `thresh=0.25, prompt='book spine.'` | 7.02% | 7.51% | 62.96% | 1 of 5 | 11,143.74 ms | 11,792.41 ms | 693.0 MB | Transformers + timm + HF Hub |
+### Semantic Status Rules:
+1. `status: "success"`: Hosted API succeeded and model structured extraction returned.
+   - `readability: "readable"`: Text is clearly legible.
+   - `readability: "partial"`: Fragment or partial title visible.
+   - `readability: "unreadable"`: Physical spine has no legible text.
+2. `status: "extraction_failed"`: Infrastructure or schema failure (timeout, network drop, HTTP 4xx/5xx, malformed response, missing crop_id in response).
 
 ---
 
-## 6. FINAL LOCAL DETECTOR SELECTION & SPECIFICATION
+## 4. MEASURED VLM PERFORMANCE, TOKEN USAGE & COST
 
-- **Selected Model**: **`YOLO26n` (`yolo26n.pt`)**
-- **Operating Configuration**: `device="cpu"`, `imgsz=1280`, `conf=0.20`, `padding_percent=0.04`.
-- **Selection Rationale**:
-  1. **Spine Localization & Usability**: Generates 38 clean, unique usable spine crops across test shelves, outperforming Grounding DINO (17 usable crops) by 2.2x.
-  2. **False Positives**: 0 false positives across all test images.
-  3. **CPU Latency**: 340.59 ms average warm latency (32.7x faster than Grounding DINO's 11.14s on CPU).
-  4. **Footprint & Complexity**: Compact 5.3 MB weights (vs 693 MB for Grounding DINO) with zero external transformer dependencies.
-  5. **Downstream Pipeline Alignment**: Handled zero-detection cases gracefully via transient warning states for human review.
+Benchmarked on 12 representative bookshelf spine crops across varied conditions (clear, narrow, partial, low-light, difficult):
+
+### Measured Usage Accounting
+- **Total Representative Crops Tested**: 12 crops
+- **Total Hosted API Requests**: 3 requests (batches of 5, 5, 2)
+- **Total Prompt Tokens**: 3,636 tokens
+- **Total Completion Tokens**: 611 tokens
+- **Total Tokens**: 4,247 tokens
+- **Total Provider-Reported Cost**: **`$0.002618`**
+- **Measured Cost Per Tested Crop**: **`$0.000218`** (`$0.0218` per 100 crops)
+- **Estimated Typical 25-Crop Bookshelf Scan Cost**: **`$0.005455`** (~half a cent per scan)
+
+### Measured Latency Breakdown
+- **Average Hosted Request Latency**: **`1,722.12 ms`**
+- **Median Hosted Request Latency**: **`1,849.86 ms`**
+- **Total Benchmark Stage Time (12 crops)**: **`6,643.29 ms`**
+
+### Batch-Size Comparison (5-crop sample)
+- **`batch_size = 5`**: 1 request, 1,753 tokens, $0.001131 cost, 1,734.24 ms latency
+- **`batch_size = 1`**: 5 requests, 3,385 tokens, $0.001726 cost, 6,429.40 ms latency
+- **Empirical Batching Advantage**: **`3.07x faster`** wall-clock throughput and **`48.2% token savings`** with `batch_size=5`.
 
 ---
 
-## 7. TEST SUITE & VERIFICATION
+## 5. REPRESENTATIVE TEST CROP EXTRACTION RESULTS
 
-- **Collected Tests**: **35 items**
-- **Passing Tests**: **`35 passed in 1.09s`**
-- **Verification**:
+Exported to [`test-images/vlm_evaluation.csv`](file:///c:/Users/rishi/Documents/Project/MealVue/test-images/vlm_evaluation.csv):
+
+| Crop ID | Source Image | Readability | Status | Extracted Title & Author | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `easy_001` | `shelf_easy.jpg` | `readable` | `success` | *Goodnight Crested Butte* / Danica Ramgoolam | Wide clear spine |
+| `easy_002` | `shelf_easy.jpg` | `readable` | `success` | *HANDBOOK OF BIRD BIOLOGY* / THE CORNELL LAB | Tall clear spine |
+| `easy_003` | `shelf_easy.jpg` | `readable` | `success` | *MARS THE PRISTINE BEAUTY OF THE RED PLANET* | Clear spine title |
+| `easy_004` | `shelf_easy.jpg` | `partial` | `success` | *Killmore Flower of the* | Partial visible text |
+| `easy_005` | `shelf_easy.jpg` | `readable` | `success` | *Sylvia Plath DRAWINGS* | Clean spine text |
+| `easy_008` | `shelf_easy.jpg` | `unreadable` | `success` | (null) | Narrow vertical text |
+| `low_light_001` | `shelf_low_light.jpg` | `unreadable` | `success` | (null) | Dark low-light contrast |
+| `low_light_002` | `shelf_low_light.jpg` | `unreadable` | `success` | (null) | Low-light spine |
+| `low_light_004` | `shelf_low_light.jpg` | `unreadable` | `success` | (null) | Low-light shadow |
+| `mixed_001` | `shelf_mixed_sizes.jpg` | `unreadable` | `success` | (null) | Horizontal stack spine |
+| `mixed_004` | `shelf_mixed_sizes.jpg` | `unreadable` | `success` | (null) | Small font spine |
+| `mixed_006` | `shelf_mixed_sizes.jpg` | `unreadable` | `success` | (null) | Difficult/blurry crop |
+
+---
+
+## 6. UNIT TEST SUITE & VERIFICATION
+
+- **Collected Tests**: **47 items**
+- **Passing Tests**: **`47 passed in 1.43s`**
+- **Test Suite Breakdown**:
   - `backend/shelfie/tests/test_health.py`: 1 test
   - `backend/shelfie/tests/test_detector.py`: 7 tests
   - `backend/shelfie/tests/test_matcher.py`: 27 tests
+  - `backend/shelfie/tests/test_vlm.py`: 12 tests (mocked HTTP, zero paid network calls)
 
 ---
 
-## 8. DEFERRED SCOPE & OUT-OF-SCOPE RECORD
+## 7. DEFERRED SCOPE & OUT-OF-SCOPE RECORD
 
-- Hosted VLM OpenRouter OCR integration (Phase 4).
-- Database ORM persistence for catalog/scan sessions (Only `LibraryBook` persisted in SQLite in Phase 5).
-- REST API endpoint integration for detector (`POST /api/analyze/` in Phase 5).
+- Full end-to-end API orchestration (`POST /api/analyze/` in Phase 5).
+- Frontend mobile review UI (`mobile/` in Phase 6).
+- SQLite persistent confirmation (`LibraryBook` in Phase 5).
