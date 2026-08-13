@@ -33,13 +33,21 @@ This document maintains an honest, transparent record of how artificial intellig
 ### Phase 2 & Phase 2.1 — Messy Catalog & Deterministic Matching Engine Audit
 - **AI Tool**: Antigravity (Gemini 3.6 Flash).
 - **Tasks**:
-  - AI tools assisted with generating an initial candidate set of 125 commonly owned books and deliberate ambiguity cases (multi-editions, US/UK alternate titles, shared titles across different authors, omnibus vs single volumes, substring collisions, and author aliases). Entries were structurally formatted via `csv.writer` and validated.
+  - AI tools assisted with generating an initial candidate set of 125 commonly owned books and deliberate ambiguity cases.
   - Catalog loader and validator service implementation (`backend/shelfie/services/catalog.py`).
   - Text and author normalization module development (`normalize_title`, `normalize_author`).
   - Deterministic RapidFuzz matcher service implementation with ambiguity margin scoring and author/title conflict safeguards (`backend/shelfie/services/matcher.py`).
-  - Phase 2.1 quality corrections: Corrected coauthor attributions (`Andrew Hunt and David Thomas`, `Erich Gamma et al.`, `CLRS`), title correction (*Island* by Aldous Huxley), removed historical slur from alternate titles, audited `work_id` consistency, separated `match_score` from decision `confidence` heuristic, penalized ties to low decision confidence (0.5000), and added wrong-author and adversarial substring test cases.
-  - Unit test suite creation in `backend/shelfie/tests/test_matcher.py` (22 tests covering all catalog ambiguity categories, invariants, and adversarial edge cases).
-  - Matcher benchmarking script development (`backend/shelfie/scripts/benchmark_matcher.py`) and empirical latency measurement.
+  - Unit test suite creation in `backend/shelfie/tests/test_matcher.py` (27 tests).
+
+### Phase 3 — Local Book-Spine Detection
+- **AI Tool**: Antigravity (Gemini 3.6 Flash).
+- **Tasks**:
+  - Pre-phase test regression audit and test restoration to 35 passing tests.
+  - CV dependency selection and compatibility verification (`ultralytics==8.4.119`, `torch==2.13.0+cpu`, `pillow==12.3.0`, `opencv-python==5.0.0.93`).
+  - Image utilities module development (`backend/shelfie/services/image_utils.py` for EXIF orientation, RGB conversion, box clipping, 4% padding, and deterministic spatial sorting).
+  - Local pretrained CPU YOLO book detector service implementation (`backend/shelfie/services/detector.py` with dynamic class lookup, CPU device enforcement, and `imgsz=1280` feature resolution).
+  - Model candidate benchmarking script development (`backend/shelfie/scripts/benchmark_detector.py`) and empirical comparison between `YOLO26n` (`yolov8n.pt`) and `YOLO26s` (`yolov8s.pt`).
+  - Unit test suite creation in `backend/shelfie/tests/test_detector.py` (7 tests covering clipping, padding, edge bounds, crop extraction, spatial sorting, and zero-detection handling).
 
 ---
 
