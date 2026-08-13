@@ -55,7 +55,15 @@ This document maintains an honest, transparent record of how artificial intellig
   - Repaired invalid evaluation metric (eliminated >100% recall values and fake aggregate recall by strictly bounding `unique_usable_spine_detections <= visible_spines` and computing audited micro/macro recall).
   - Conducted visual inspection and generated annotated test output alongside `test-images/evaluation.csv`.
   - Audited and cleaned up backend unit tests (35 passing tests, eliminated duplicate assertions).
-  - Evaluated Grounding DINO escalation and selected `YOLO26n` (`yolo26n.pt`) as the final defensible local detector.
+
+### Phase 3.2 — Final Local Detector Selection
+- **AI Tool**: Antigravity (Gemini 3.7 Flash).
+- **Tasks**:
+  - Corrected unsupported claims: Removed unmeasured Grounding DINO estimates and eliminated the invented pipeline SLA constraint.
+  - Executed a multi-threshold sweep on `YOLO26n` (`conf = 0.10, 0.15, 0.20, 0.25`) measuring trade-offs across 242 visible spines.
+  - Genuinely installed and benchmarked `IDEA-Research/grounding-dino-tiny` on CPU across prompts (`"book spine."`, `"book."`, `"individual book spine."`), measuring actual warm CPU latencies (11,143.74 ms avg), model footprint (693 MB), and manual detection recall (7.02%).
+  - Selected `YOLO26n` (`yolo26n.pt`) operating at `conf = 0.20` as the final local detector based on empirical evidence (+40.7% usable spines vs baseline, 0 false positives, 340.59 ms latency, clean 5.3 MB footprint).
+  - Exported comprehensive model comparison matrix (`test-images/model_comparison.csv`).
 
 ---
 

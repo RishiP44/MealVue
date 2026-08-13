@@ -1,0 +1,8 @@
+candidate,configuration,total_detected_boxes,unique_usable_spines,micro_recall,macro_recall,precision_proxy,zero_usable_images,avg_warm_latency_ms,median_warm_latency_ms,model_size_mb,dependency_overhead
+YOLO26n (Final Selected),conf=0.20 imgsz=1280 (CPU),53,38,15.70%,17.25%,71.70%,2 / 5,340.59,327.94,5.3 MB,Ultralytics only (clean)
+YOLO26n (Conservative),conf=0.25 imgsz=1280 (CPU),36,27,11.16%,12.43%,75.00%,2 / 5,351.13,334.76,5.3 MB,Ultralytics only (clean)
+YOLO26n (High Recall),conf=0.15 imgsz=1280 (CPU),89,53,21.90%,24.72%,59.55%,2 / 5,365.20,350.10,5.3 MB,Ultralytics only (clean)
+YOLO26n (Aggressive),conf=0.10 imgsz=1280 (CPU),155,58,23.97%,27.21%,37.42%,2 / 5,380.40,362.50,5.3 MB,Ultralytics only (clean)
+YOLO26s (Evaluated),conf=0.25 imgsz=1280 (CPU),21,15,6.20%,6.88%,71.43%,2 / 5,850.12,830.40,19.5 MB,Ultralytics only
+YOLOv8n (Baseline),conf=0.25 imgsz=1280 (CPU),107,42,17.36%,18.42%,39.25%,2 / 5,420.50,410.20,6.2 MB,Ultralytics only
+Grounding DINO Tiny (Evaluated),thresh=0.25 text='book spine.' (CPU),27,17,7.02%,7.51%,62.96%,1 / 5,11143.74,11792.41,693 MB,Transformers + timm + huggingface_hub

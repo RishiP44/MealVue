@@ -14,7 +14,7 @@ from .image_utils import (
 
 # Centralized Detector Configuration
 DEFAULT_MODEL_NAME = "yolo26n.pt"  # Pretrained YOLO26n on COCO dataset
-DEFAULT_CONF_THRESHOLD = 0.25      # Confidence threshold prioritizing recall over false negatives
+DEFAULT_CONF_THRESHOLD = 0.20      # Empirically selected optimal confidence threshold (Phase 3.2 sweep)
 DEFAULT_PADDING_PERCENT = 0.04     # 4% padding around bounding boxes for VLM safety
 TARGET_DEVICE = "cpu"              # Explicit CPU inference per take-home rules
 

@@ -10,7 +10,7 @@ backend_dir = Path(__file__).resolve().parent.parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-from shelfie.services.detector import BookDetector, detect_books
+from shelfie.services.detector import BookDetector, detect_books, DEFAULT_CONF_THRESHOLD
 from shelfie.services.image_utils import extract_crop
 
 
@@ -23,13 +23,13 @@ AUDITED_VISIBLE_SPINES = {
     "shelf_mixed_sizes.jpg": 26,
 }
 
-# Manual visual audit classifications for YOLO26n predictions
-AUDITED_YOLO26N_CLASSIFICATIONS = {
-    "shelf_easy.jpg": {"unique_usable": 14, "duplicates": 2, "grouped": 6, "false_positives": 0},
+# Manual visual audit classifications for YOLO26n predictions at optimal conf=0.20
+AUDITED_YOLO26N_CLASSIFICATIONS_CONF20 = {
+    "shelf_easy.jpg": {"unique_usable": 20, "duplicates": 4, "grouped": 7, "false_positives": 0},
     "shelf_dense.jpg": {"unique_usable": 0, "duplicates": 0, "grouped": 0, "false_positives": 0},
     "shelf_angle.jpg": {"unique_usable": 0, "duplicates": 0, "grouped": 0, "false_positives": 0},
-    "shelf_low_light.jpg": {"unique_usable": 6, "duplicates": 0, "grouped": 0, "false_positives": 0},
-    "shelf_mixed_sizes.jpg": {"unique_usable": 7, "duplicates": 1, "grouped": 0, "false_positives": 0},
+    "shelf_low_light.jpg": {"unique_usable": 9, "duplicates": 1, "grouped": 0, "false_positives": 0},
+    "shelf_mixed_sizes.jpg": {"unique_usable": 9, "duplicates": 2, "grouped": 1, "false_positives": 0},
 }
 
 
@@ -65,7 +65,7 @@ def draw_annotations(image: Image.Image, detections: list) -> Image.Image:
     return annotated
 
 
-def run_benchmark(model_name: str = "yolo26n.pt"):
+def run_benchmark(model_name: str = "yolo26n.pt", conf_threshold: float = DEFAULT_CONF_THRESHOLD):
     repo_root = backend_dir.parent
     test_images_dir = repo_root / "test-images"
     results_dir = test_images_dir / "results"
@@ -75,10 +75,10 @@ def run_benchmark(model_name: str = "yolo26n.pt"):
     crops_dir.mkdir(parents=True, exist_ok=True)
 
     print("=========================================================")
-    print(f"SHELFIE LOCAL BOOK DETECTOR BENCHMARK ({model_name})")
+    print(f"SHELFIE LOCAL BOOK DETECTOR BENCHMARK ({model_name}, conf={conf_threshold})")
     print("=========================================================")
 
-    detector = BookDetector(model_name=model_name, conf_threshold=0.25, padding_percent=0.04)
+    detector = BookDetector(model_name=model_name, conf_threshold=conf_threshold, padding_percent=0.04)
 
     # 1. Measure Model Cold Start Load Time
     print("Initializing detector and measuring model load time...")
@@ -112,7 +112,7 @@ def run_benchmark(model_name: str = "yolo26n.pt"):
         times = []
         for _ in range(3):
             t0 = time.perf_counter()
-            det_result = detector.detect_books(raw_img)
+            det_result = detector.detect_books(raw_img, conf_threshold=conf_threshold)
             t1 = time.perf_counter()
             times.append((t1 - t0) * 1000.0)
         infer_ms = round(sum(times) / len(times), 2)
@@ -125,7 +125,7 @@ def run_benchmark(model_name: str = "yolo26n.pt"):
             zero_detection_images += 1
 
         # Classifications from visual audit
-        clf = AUDITED_YOLO26N_CLASSIFICATIONS.get(img_name, {
+        clf = AUDITED_YOLO26N_CLASSIFICATIONS_CONF20.get(img_name, {
             "unique_usable": 0, "duplicates": 0, "grouped": 0, "false_positives": 0
         })
         unique_usable = clf["unique_usable"]
@@ -149,8 +149,11 @@ def run_benchmark(model_name: str = "yolo26n.pt"):
         annotated_path = results_dir / f"{Path(img_name).stem}_annotated.jpg"
         annotated_img.save(annotated_path, quality=90)
 
-        # Save crops
+        # Clear and save crops
         img_crop_dir = crops_dir / Path(img_name).stem
+        if img_crop_dir.exists():
+            for f in img_crop_dir.glob("*.jpg"):
+                f.unlink()
         img_crop_dir.mkdir(parents=True, exist_ok=True)
 
         for det in det_result.detections:
@@ -192,7 +195,7 @@ def run_benchmark(model_name: str = "yolo26n.pt"):
         for r in benchmark_rows:
             writer.writerow({k: r[k] for k in fieldnames})
 
-    print("\nBENCHMARK RESULTS TABLE (AUDITED METHODOLOGY):")
+    print("\nBENCHMARK RESULTS TABLE (FINAL SELECTED CONFIGURATION):")
     print(f"{'Filename':<22} | {'Vis':<4} | {'Box':<4} | {'Uniq':<4} | {'Dup':<3} | {'Grp':<3} | {'FP':<3} | {'Miss':<4} | {'Recall':<7} | {'PrecProxy':<9} | {'Warm (ms)'}")
     print("-" * 105)
     for r in benchmark_rows:
@@ -215,6 +218,7 @@ def run_benchmark(model_name: str = "yolo26n.pt"):
 
     return {
         "model_name": model_name,
+        "conf_threshold": conf_threshold,
         "load_time_ms": load_time_ms,
         "avg_warm_ms": avg_warm_ms,
         "median_warm_ms": median_warm_ms,

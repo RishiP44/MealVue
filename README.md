@@ -54,9 +54,9 @@ Shelfie is a mobile application and API pipeline that turns a photograph of a bo
 
 ---
 
-## Local Computer Vision Detector Methodology (Phase 3 & 3.1)
+## Local Computer Vision Detector Methodology (Phases 3, 3.1 & 3.2)
 
-- **Selected Pretrained Model**: **`YOLO26n` (`yolo26n.pt`)** (5.3 MB pretrained weights on COCO dataset). First run downloads model weights automatically.
+- **Selected Pretrained Model**: **`YOLO26n` (`yolo26n.pt`)** (5.3 MB pretrained weights on COCO dataset, operating at tuned `conf = 0.20` on CPU at `imgsz = 1280`). First run downloads model weights automatically.
 - **CPU Inference**: Explicitly executed on CPU (`device="cpu"`) per take-home guidelines.
 - **Dynamic Label Resolution**: Class ID resolved dynamically (`class_name.lower() == "book"`).
 - **Spine Feature Resolution**: High-resolution inference (`imgsz=1280`) preserves thin vertical book spine features.
@@ -68,10 +68,12 @@ Shelfie is a mobile application and API pipeline that turns a photograph of a bo
 
 ## Measured Performance Benchmarks
 
-- **Local CV Model Cold-Start Load Time**: **`88.65 ms`**
-- **Local CV Warm CPU Inference Latency**: **`389.27 ms` median** (`400.19 ms` mean across 5 test photos)
-- **Manual Usable-Crop Recall (Audited Micro)**: **`11.16%`** (27 unique usable spines out of 242 visible spines; Macro: `12.43%`)
+- **Local CV Model Cold-Start Load Time**: **`69.16 ms`**
+- **Local CV Warm CPU Inference Latency**: **`327.94 ms` median** (`340.59 ms` mean across 5 test photos)
+- **Manual Usable-Crop Recall (Audited Micro)**: **`15.70%`** (38 unique usable spines out of 242 visible spines; Macro: `17.25%`)
+- **Manual Precision Proxy**: **`71.70%`** (38 unique usable crops / 53 detected boxes, 0 false positives)
 - **Zero-Detection Images**: 2 of 5 (`shelf_angle.jpg`, `shelf_dense.jpg`)
+- **Grounding DINO Tiny Warm CPU Latency**: **`11,143.74 ms`** (Evaluated in Phase 3.2; 7.02% micro recall, 693 MB weights)
 - **Deterministic Catalog Matcher Latency**: **`5.65 ms` per call** (Measured over 999 calls; 176.88 calls/sec throughput)
 - **Hosted VLM Latency**: `TBD — measured during benchmark phase` (Phase 4)
 - **Estimated API Cost per Scan**: `TBD — measured during benchmark phase` (Phase 4)
