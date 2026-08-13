@@ -1,0 +1,5 @@
+filename,dimensions,status,detections,vlm_requests,matched,needs_review,unmatched,unreadable,extraction_failed,detection_ms,crop_prep_ms,vlm_ms,matching_ms,total_ms,api_cost_usd
+shelf_easy.jpg,1280x960,success,31,7,0,24,5,2,0,4032.64,34.03,12526.12,158.62,16751.51,0.007254
+shelf_low_light.jpg,1280x1183,success,10,2,0,0,0,10,0,510.13,0.19,4000.34,0.02,4510.76,0.002044
+shelf_mixed_sizes.jpg,960x1440,success,12,3,0,0,0,12,0,426.26,0.26,4127.34,0.02,4553.96,0.002499
+shelf_angle.jpg,1280x854,no_books_detected,0,0,0,0,0,0,0,382.15,0.0,0.0,0.0,382.18,0.0

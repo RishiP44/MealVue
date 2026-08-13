@@ -73,6 +73,15 @@ This document maintains an honest, transparent record of how artificial intellig
   - Created mocked unit test suite (`backend/shelfie/tests/test_vlm.py`) covering retries, timeouts, 429/500/401 handling, nullable fields, and malformed JSON recovery (12 tests, 0 paid calls).
   - Built and executed real-crop benchmark script (`backend/shelfie/scripts/benchmark_vlm.py`), collecting empirical token usage, provider costs, and latency metrics across 12 representative crops, exported to `test-images/vlm_evaluation.csv`.
 
+### Phase 5 — Backend Vertical Slice & End-to-End Pipeline
+- **AI Tool**: Antigravity (Gemini 3.7 Flash).
+- **Tasks**:
+  - Designed and implemented `LibraryBook` SQLite database model and migrations (`backend/shelfie/models.py`).
+  - Implemented `ShelfiePipeline` orchestrator service (`backend/shelfie/services/pipeline.py`) integrating Detector, VLM, Matcher, and confidence routing without auto-persistence.
+  - Built REST endpoints and serializers (`POST /api/analyze/`, `POST /api/match/`, `GET /api/library/`, `POST /api/library/`) in `backend/shelfie/views.py`.
+  - Built comprehensive mock-based API and pipeline test suites in `backend/shelfie/tests/test_api.py` and `test_pipeline.py` (64 total passing backend tests).
+  - Executed and logged real end-to-end benchmark (`backend/shelfie/scripts/benchmark_pipeline.py`) across 4 test photographs, exporting metrics to `test-images/pipeline_evaluation.csv`.
+
 ---
 
 ## Developer Oversight & Code Attribution Statement

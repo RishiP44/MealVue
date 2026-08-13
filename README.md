@@ -73,6 +73,14 @@ Shelfie is a mobile application and API pipeline that turns a photograph of a bo
 - **Resilience**: 1 retry for transient rate limits (429), timeouts, and 5xx errors; non-retriable immediate failure for 401/400.
 - **Decoupled Architecture**: VLM transcribes raw visible text without receiving or influencing `catalog.csv`.
 
+## Backend REST API Endpoints (Phase 5)
+
+- **`GET /api/health/`**: Service liveness and health probe.
+- **`POST /api/analyze/`**: Accepts multipart/form-data with `image` (max 15 MB). Executes Detector $\rightarrow$ Padded Crops $\rightarrow$ Hosted Gemini 2.5 Flash $\rightarrow$ RapidFuzz `catalog.csv` Matcher. Returns transient item states (`matched`, `needs_review`, `unmatched`, `unreadable`, `extraction_failed`), summary, and latency/cost metrics. Zero auto-persistence.
+- **`POST /api/match/`**: Accepts user-corrected `title` / `author` JSON and reruns deterministic matching on `catalog.csv`.
+- **`GET /api/library/`**: Returns list of persisted confirmed personal library books (`LibraryBook` SQLite model) ordered by `-added_at`.
+- **`POST /api/library/`**: Explicit human confirmation endpoint accepting single or batch book additions. Populates canonical metadata from `catalog.csv` and deduplicates by `catalog_id`.
+
 ---
 
 ## Measured Performance Benchmarks
@@ -86,6 +94,8 @@ Shelfie is a mobile application and API pipeline that turns a photograph of a bo
 - **Hosted VLM Request Latency**: **`1,849.86 ms` median** (`1,722.12 ms` mean per 5-crop batch)
 - **Hosted VLM Cost per Tested Crop**: **`$0.000218`** (`$0.0218` per 100 crops)
 - **Estimated Typical 25-Crop Scan API Cost**: **`$0.0055`** (~half a cent per complete scan)
-- **Batching Latency Advantage**: **`3.07x faster`** wall-clock throughput (`batch_size=5` vs `batch_size=1`) with **`48.2% token savings`**
+- **Batching Latency Advantage**: **`3.71x faster`** wall-clock throughput (`batch_size=5` vs `batch_size=1`) with **`48.2% token savings`**
+- **Full End-to-End Pipeline Latency (Phase 5)**: **`4,553.96 ms` median** (`6,549.60 ms` mean across test photographs)
+- **Average API Cost per Shelf Photograph (Phase 5)**: **`$0.002949`** (~0.3 cents per complete photograph)
 
 

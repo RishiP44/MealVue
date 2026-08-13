@@ -122,7 +122,7 @@ YOLO26 is released under the AGPL-3.0 license. This choice represents an explici
 - **Provider**: OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`).
 - **Configured Model**: `google/gemini-2.5-flash` via `VLM_MODEL` environment variable.
 - **Configurable Batching**: `VLM_BATCH_SIZE=5` (batches up to 5 base64 JPEG crops per single API call).
-- **Empirical Batching Speedup**: Benchmarking proved `batch_size=5` delivers a **3.07x latency speedup** and **48.2% token savings** compared to individual 1-by-1 requests.
+- **Empirical Batching Speedup**: Benchmarking proved `batch_size=5` delivers a **3.71x latency speedup** and **48.2% token savings** compared to individual 1-by-1 requests.
 - **Stable Tracking**: Every crop payload includes a stable `crop_id` so VLM responses map back unambiguously to local detection coordinates.
 
 ### 5.2 Structured Output Schema & Local Validation
@@ -216,63 +216,125 @@ The pipeline enforces 5 mutually exclusive, explicit states for each crop item:
 
 ### 8.1 `POST /api/analyze/`
 Upload bookshelf photo and execute scan pipeline.
-- **Request**: `multipart/form-data` with `image` file field.
+- **Request**: `multipart/form-data` with `image` file field (max 15 MB).
 - **Response** (`200 OK`):
   ```json
   {
-    "total_detected": 8,
-    "metrics": {
-      "detection_ms": "TBD",
-      "vlm_ms": "TBD",
-      "matching_ms": "TBD",
-      "total_ms": "TBD",
-      "estimated_cost_usd": "TBD"
+    "status": "success",
+    "summary": {
+      "detections": 2,
+      "matched": 1,
+      "needs_review": 1,
+      "unmatched": 0,
+      "unreadable": 0,
+      "extraction_failed": 0
     },
     "items": [
       {
-        "crop_id": "crop_01",
-        "bounding_box": [100, 50, 160, 480],
-        "vlm_extraction": {
-          "title": "Clean Code",
-          "author": "Robert C. Martin",
-          "readability": "high"
-        },
+        "item_id": "book_001",
+        "bbox": { "x1": 10, "y1": 20, "x2": 60, "y2": 400, "width": 50, "height": 380 },
+        "detector_confidence": 0.85,
         "state": "matched",
-        "top_match": {
-          "catalog_id": "cat-042",
-          "title": "Clean Code: A Handbook of Agile Software Craftsmanship",
-          "author": "Robert C. Martin",
-          "score": 0.94,
-          "margin": 0.38
+        "extraction": {
+          "title": "The Fellowship of the Ring",
+          "author": "J. R. R. Tolkien",
+          "readability": "readable",
+          "status": "success",
+          "error_reason": null
         },
-        "alternate_matches": [
-          { "catalog_id": "cat-043", "title": "The Clean Coder", "score": 0.56 }
-        ]
+        "match": {
+          "state": "matched",
+          "match_score": 1.0,
+          "confidence": 1.0,
+          "best_candidate": {
+            "catalog_id": "BK0003",
+            "work_id": "WK0002",
+            "title": "The Fellowship of the Ring",
+            "author": "J. R. R. Tolkien",
+            "edition": "First Edition",
+            "publication_year": "1954",
+            "score": 1.0
+          },
+          "alternatives": []
+        }
+      }
+    ],
+    "metrics": {
+      "detection_ms": 340.5,
+      "crop_prep_ms": 12.3,
+      "vlm_ms": 1722.1,
+      "matching_ms": 5.6,
+      "total_ms": 2080.5,
+      "api_requests": 1,
+      "api_cost_usd": 0.00065
+    },
+    "warnings": []
+  }
+  ```
+
+### 8.2 `POST /api/match/`
+Rerun deterministic catalog matching for user-corrected title/author during human-in-the-loop review.
+- **Request**: `{ "title": "The Hobbit", "author": "JRR Tolkien" }`
+- **Response** (`200 OK`):
+  ```json
+  {
+    "state": "needs_review",
+    "match_score": 0.9368,
+    "confidence": 0.4684,
+    "best_candidate": {
+      "catalog_id": "BK0001",
+      "title": "The Hobbit",
+      "author": "J. R. R. Tolkien",
+      "score": 0.9368
+    },
+    "alternatives": [...]
+  }
+  ```
+
+### 8.3 `GET /api/library/`
+Retrieve persisted confirmed personal library books.
+- **Response** (`200 OK`):
+  ```json
+  {
+    "count": 1,
+    "books": [
+      {
+        "id": 1,
+        "catalog_id": "BK0001",
+        "confirmed_title": "The Hobbit",
+        "confirmed_author": "J. R. R. Tolkien",
+        "edition": "Standard",
+        "source_match_confidence": 0.95,
+        "added_at": "2026-08-13T21:00:00Z"
       }
     ]
   }
   ```
 
-### 8.2 `POST /api/match/` (Optional Rerun)
-Input user-edited title/author string during review to rerun deterministic matcher against `catalog.csv`.
-- **Request**: `{ "title": "Clean Code", "author": "Martin" }`
-- **Response** (`200 OK`): Matched candidate object.
-
-### 8.3 `GET /api/library/`
-Fetch user's confirmed personal library books.
-- **Response** (`200 OK`): List of confirmed `LibraryBook` objects.
-
 ### 8.4 `POST /api/library/`
-Persist confirmed catalog books (supports batch array payload).
+Explicit human confirmation to persist one or multiple books to the personal library.
 - **Request**:
   ```json
   {
     "books": [
-      { "catalog_id": "cat-042", "confirmed_title": "Clean Code", "confirmed_author": "Robert C. Martin" }
+      {
+        "catalog_id": "BK0001",
+        "confirmed_title": "The Hobbit",
+        "confirmed_author": "J. R. R. Tolkien",
+        "source_match_confidence": 0.95
+      }
     ]
   }
   ```
-- **Response** (`201 Created`): `{ "status": "success", "added_count": 1 }`
+- **Response** (`201 Created` / `200 OK` on duplicates):
+  ```json
+  {
+    "status": "success",
+    "added_count": 1,
+    "duplicate_count": 0,
+    "books": [...]
+  }
+  ```
 
 ---
 

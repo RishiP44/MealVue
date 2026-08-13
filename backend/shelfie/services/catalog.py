@@ -93,3 +93,16 @@ def load_catalog(filepath: Optional[str | Path] = None) -> List[CatalogEntry]:
         raise ValueError("catalog.csv contains zero entries")
 
     return entries
+
+
+_cached_catalog_dict: Optional[dict] = None
+
+
+def get_default_catalog_dict() -> dict:
+    """Return dictionary of catalog entries keyed by catalog_id."""
+    global _cached_catalog_dict
+    if _cached_catalog_dict is None:
+        entries = load_catalog()
+        _cached_catalog_dict = {e.catalog_id: e for e in entries}
+    return _cached_catalog_dict
+

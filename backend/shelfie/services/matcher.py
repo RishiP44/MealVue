@@ -116,6 +116,10 @@ class MatchResult:
     alternatives: List[Dict[str, Any]]
     signals: Dict[str, Any]
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
 
 class CatalogMatcher:
     def __init__(self, catalog_entries: Optional[List[CatalogEntry]] = None):
