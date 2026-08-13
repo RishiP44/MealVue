@@ -42,12 +42,20 @@ This document maintains an honest, transparent record of how artificial intellig
 ### Phase 3 — Local Book-Spine Detection
 - **AI Tool**: Antigravity (Gemini 3.6 Flash).
 - **Tasks**:
-  - Pre-phase test regression audit and test restoration to 35 passing tests.
+  - Pre-phase test regression audit and test restoration.
   - CV dependency selection and compatibility verification (`ultralytics==8.4.119`, `torch==2.13.0+cpu`, `pillow==12.3.0`, `opencv-python==5.0.0.93`).
   - Image utilities module development (`backend/shelfie/services/image_utils.py` for EXIF orientation, RGB conversion, box clipping, 4% padding, and deterministic spatial sorting).
   - Local pretrained CPU YOLO book detector service implementation (`backend/shelfie/services/detector.py` with dynamic class lookup, CPU device enforcement, and `imgsz=1280` feature resolution).
-  - Model candidate benchmarking script development (`backend/shelfie/scripts/benchmark_detector.py`) and empirical comparison between `YOLO26n` (`yolov8n.pt`) and `YOLO26s` (`yolov8s.pt`).
-  - Unit test suite creation in `backend/shelfie/tests/test_detector.py` (7 tests covering clipping, padding, edge bounds, crop extraction, spatial sorting, and zero-detection handling).
+  - Unit test suite creation in `backend/shelfie/tests/test_detector.py` (7 tests).
+
+### Phase 3.1 — Detector Identity & Benchmark Correction
+- **AI Tool**: Antigravity (Gemini 3.7 Flash).
+- **Tasks**:
+  - Model identity audit: Corrected mislabeled `yolov8n.pt`/`yolov8s.pt` model references to truthful YOLOv8 naming and benchmarked genuine `YOLO26n` (`yolo26n.pt`) and `YOLO26s` (`yolo26s.pt`).
+  - Repaired invalid evaluation metric (eliminated >100% recall values and fake aggregate recall by strictly bounding `unique_usable_spine_detections <= visible_spines` and computing audited micro/macro recall).
+  - Conducted visual inspection and generated annotated test output alongside `test-images/evaluation.csv`.
+  - Audited and cleaned up backend unit tests (35 passing tests, eliminated duplicate assertions).
+  - Evaluated Grounding DINO escalation and selected `YOLO26n` (`yolo26n.pt`) as the final defensible local detector.
 
 ---
 

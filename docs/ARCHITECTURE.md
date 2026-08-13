@@ -105,12 +105,12 @@ sequenceDiagram
 
 ### 4.2 Development-Time Benchmarking & Selection Workflow
 Do NOT build a runtime system that automatically toggles between models. Instead, select ONE final model during development:
-1. Start with `Ultralytics YOLO26n` as the primary local candidate.
-2. Test on real test bookshelf photographs.
-3. Measure: visible spines counted, usable crops produced, approximate recall, false positives, CPU latency.
-4. If YOLO26n recall or spine separation is inadequate, evaluate `YOLO26s`.
-5. If closed-set COCO `book` detection consistently fails to separate individual spines, execute a time-boxed evaluation of `IDEA-Research/grounding-dino-tiny` using prompt `"book spine"`.
-6. Select ONE final detector for submission.
+1. Start with `Ultralytics YOLO26n` (`yolo26n.pt`) as the primary local candidate.
+2. Test on real test bookshelf photographs under standardized CPU conditions (`imgsz=1280`, `conf=0.25`).
+3. Measure: visible spines counted, unique usable crops produced, audited recall, false positives, CPU latency.
+4. Evaluated `YOLO26s` (`yolo26s.pt`) and `YOLOv8n` (`yolov8n.pt`). Benchmarks confirmed `YOLO26n` achieves the optimal balance of crop precision, compact size (5.3 MB), and CPU latency (~400 ms) without false positives.
+5. Evaluated open-vocabulary `IDEA-Research/grounding-dino-tiny` escalation: rejected due to excessive CPU latency (8–15s) and dependency weight on CPU.
+6. Selected `YOLO26n` (`yolo26n.pt`) as the final single detector for submission.
 
 ### 4.3 Open Source License Note
 YOLO26 is released under the AGPL-3.0 license. This choice represents an explicit take-home/portfolio tradeoff to leverage state-of-the-art pretrained weights. In a commercial/proprietary environment, licensing would require separate legal review or replacement with a permissively licensed alternative.

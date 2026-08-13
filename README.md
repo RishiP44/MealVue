@@ -54,9 +54,9 @@ Shelfie is a mobile application and API pipeline that turns a photograph of a bo
 
 ---
 
-## Local Computer Vision Detector Methodology (Phase 3)
+## Local Computer Vision Detector Methodology (Phase 3 & 3.1)
 
-- **Selected Pretrained Model**: **`YOLO26n` (`yolov8n.pt`)** (6.2 MB pretrained weights on COCO dataset). First run downloads model weights automatically.
+- **Selected Pretrained Model**: **`YOLO26n` (`yolo26n.pt`)** (5.3 MB pretrained weights on COCO dataset). First run downloads model weights automatically.
 - **CPU Inference**: Explicitly executed on CPU (`device="cpu"`) per take-home guidelines.
 - **Dynamic Label Resolution**: Class ID resolved dynamically (`class_name.lower() == "book"`).
 - **Spine Feature Resolution**: High-resolution inference (`imgsz=1280`) preserves thin vertical book spine features.
@@ -68,9 +68,10 @@ Shelfie is a mobile application and API pipeline that turns a photograph of a bo
 
 ## Measured Performance Benchmarks
 
-- **Local CV Model Cold-Start Load Time**: **`48.24 ms`**
-- **Local CV Warm CPU Inference Latency**: **`445.96 ms` median** (`1035.74 ms` mean across 5 test photos)
-- **Manual Usable-Crop Recall**: **`89.91%`** (98 usable crops out of 109 visible spines)
+- **Local CV Model Cold-Start Load Time**: **`88.65 ms`**
+- **Local CV Warm CPU Inference Latency**: **`389.27 ms` median** (`400.19 ms` mean across 5 test photos)
+- **Manual Usable-Crop Recall (Audited Micro)**: **`11.16%`** (27 unique usable spines out of 242 visible spines; Macro: `12.43%`)
+- **Zero-Detection Images**: 2 of 5 (`shelf_angle.jpg`, `shelf_dense.jpg`)
 - **Deterministic Catalog Matcher Latency**: **`5.65 ms` per call** (Measured over 999 calls; 176.88 calls/sec throughput)
 - **Hosted VLM Latency**: `TBD — measured during benchmark phase` (Phase 4)
 - **Estimated API Cost per Scan**: `TBD — measured during benchmark phase` (Phase 4)

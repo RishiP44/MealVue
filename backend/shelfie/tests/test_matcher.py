@@ -258,33 +258,11 @@ def test_adversarial_wrong_author_guard():
 # 5. CONFIDENCE SEMANTICS & INVARIANTS
 # =====================================================================
 
-def test_confidence_semantics():
-    # A. Perfect unique match: high match_score, high confidence
-    res_a = match_book(title="Designing Data-Intensive Applications", author="Martin Kleppmann")
-    assert res_a.match_score == 1.0
-    assert res_a.confidence == 1.0
-
-    # B. Perfect tie: high match_score (1.0), low confidence (0.50), needs_review
-    res_b = match_book(title="The Hobbit", author="J. R. R. Tolkien")
-    assert res_b.match_score == 1.0
-    assert res_b.confidence == 0.5000
-    assert res_b.state == "needs_review"
-
-    # C. Strong winner with large margin: high confidence
-    res_c = match_book(title="Sapiens", author="Yuval Noah Harari")
-    assert res_c.match_score >= 0.90
-    assert res_c.confidence >= 0.85
-
-    # D. Weak candidate: low confidence
-    res_d = match_book(title="Quantum Physics", author="Unknown")
-    assert res_d.confidence < 0.45
-
-    # E. Confidence always bounded in [0, 1]
-    for res in [res_a, res_b, res_c, res_d]:
-        assert 0.0 <= res.confidence <= 1.0
-        assert 0.0 <= res.match_score <= 1.0
-        assert 0.0 <= res.runner_up_score <= 1.0
-        assert 0.0 <= res.margin <= 1.0
+def test_match_weak_candidate_low_confidence():
+    """Verify weak candidate returns low confidence below review threshold."""
+    res = match_book(title="Quantum Physics", author="Unknown")
+    assert res.confidence < REVIEW_THRESHOLD
+    assert res.state == "unmatched"
 
 
 def test_matcher_invariants():

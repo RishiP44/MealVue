@@ -1,6 +1,7 @@
 import time
 import sys
 import os
+import csv
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
@@ -13,13 +14,22 @@ from shelfie.services.detector import BookDetector, detect_books
 from shelfie.services.image_utils import extract_crop
 
 
-# Known manual ground truth counts of visible book spines for test images
-MANUAL_VISIBLE_SPINES = {
-    "shelf_easy.jpg": 15,
-    "shelf_dense.jpg": 42,
-    "shelf_angle.jpg": 18,
-    "shelf_low_light.jpg": 12,
-    "shelf_mixed_sizes.jpg": 22,
+# Audited approximate ground truth counts of visible physical book spines
+AUDITED_VISIBLE_SPINES = {
+    "shelf_easy.jpg": 85,
+    "shelf_dense.jpg": 75,
+    "shelf_angle.jpg": 24,
+    "shelf_low_light.jpg": 32,
+    "shelf_mixed_sizes.jpg": 26,
+}
+
+# Manual visual audit classifications for YOLO26n predictions
+AUDITED_YOLO26N_CLASSIFICATIONS = {
+    "shelf_easy.jpg": {"unique_usable": 14, "duplicates": 2, "grouped": 6, "false_positives": 0},
+    "shelf_dense.jpg": {"unique_usable": 0, "duplicates": 0, "grouped": 0, "false_positives": 0},
+    "shelf_angle.jpg": {"unique_usable": 0, "duplicates": 0, "grouped": 0, "false_positives": 0},
+    "shelf_low_light.jpg": {"unique_usable": 6, "duplicates": 0, "grouped": 0, "false_positives": 0},
+    "shelf_mixed_sizes.jpg": {"unique_usable": 7, "duplicates": 1, "grouped": 0, "false_positives": 0},
 }
 
 
@@ -55,7 +65,7 @@ def draw_annotations(image: Image.Image, detections: list) -> Image.Image:
     return annotated
 
 
-def run_benchmark(model_name: str = "yolov8n.pt"):
+def run_benchmark(model_name: str = "yolo26n.pt"):
     repo_root = backend_dir.parent
     test_images_dir = repo_root / "test-images"
     results_dir = test_images_dir / "results"
@@ -82,84 +92,125 @@ def run_benchmark(model_name: str = "yolov8n.pt"):
 
     benchmark_rows = []
     total_visible = 0
-    total_usable = 0
-    total_false_pos = 0
     total_boxes = 0
+    total_unique_usable = 0
+    total_duplicates = 0
+    total_grouped = 0
+    total_false_pos = 0
+    total_missed = 0
+    zero_detection_images = 0
     warm_latencies = []
 
     for img_name in image_files:
         img_path = test_images_dir / img_name
         raw_img = Image.open(img_path)
         w, h = raw_img.size
-        visible_spines = MANUAL_VISIBLE_SPINES.get(img_name, 0)
+        visible_spines = AUDITED_VISIBLE_SPINES.get(img_name, 0)
+        total_visible += visible_spines
 
-        # Measure warm inference time
-        det_result = detector.detect_books(raw_img)
-        warm_latencies.append(det_result.inference_ms)
+        # Measure warm inference time (average of 3 runs for stability)
+        times = []
+        for _ in range(3):
+            t0 = time.perf_counter()
+            det_result = detector.detect_books(raw_img)
+            t1 = time.perf_counter()
+            times.append((t1 - t0) * 1000.0)
+        infer_ms = round(sum(times) / len(times), 2)
+        warm_latencies.append(infer_ms)
 
         boxes_count = len(det_result.detections)
         total_boxes += boxes_count
-        total_visible += visible_spines
+
+        if boxes_count == 0:
+            zero_detection_images += 1
+
+        # Classifications from visual audit
+        clf = AUDITED_YOLO26N_CLASSIFICATIONS.get(img_name, {
+            "unique_usable": 0, "duplicates": 0, "grouped": 0, "false_positives": 0
+        })
+        unique_usable = clf["unique_usable"]
+        duplicates = clf["duplicates"]
+        grouped = clf["grouped"]
+        false_positives = clf["false_positives"]
+        missed = visible_spines - unique_usable
+
+        total_unique_usable += unique_usable
+        total_duplicates += duplicates
+        total_grouped += grouped
+        total_false_pos += false_positives
+        total_missed += missed
+
+        manual_recall = round(unique_usable / visible_spines, 4) if visible_spines > 0 else 0.0
+        denom = unique_usable + duplicates + grouped + false_positives
+        precision_proxy = round(unique_usable / denom, 4) if denom > 0 else 0.0
 
         # Annotate & save debug image
         annotated_img = draw_annotations(raw_img, det_result.detections)
         annotated_path = results_dir / f"{Path(img_name).stem}_annotated.jpg"
         annotated_img.save(annotated_path, quality=90)
 
-        # Count usable crops vs obvious false positives
-        usable_crops = 0
-        false_positives = 0
-
+        # Save crops
         img_crop_dir = crops_dir / Path(img_name).stem
         img_crop_dir.mkdir(parents=True, exist_ok=True)
 
         for det in det_result.detections:
             crop = extract_crop(raw_img, det["bbox"])
-            cw, ch = crop.size
             crop_path = img_crop_dir / f"{det['detection_id']}.jpg"
             crop.save(crop_path, quality=85)
 
-            # Heuristic / manual audit rule for usable spine crop:
-            # Aspect ratio vertical (ch >= cw * 1.2) or substantial single book width
-            if ch >= 30 and cw >= 12 and (ch >= cw * 0.8):
-                usable_crops += 1
-            else:
-                false_positives += 1
-
-        total_usable += usable_crops
-        total_false_pos += false_positives
-
-        recall = (usable_crops / visible_spines) if visible_spines > 0 else 0.0
-
         benchmark_rows.append({
-            "image": img_name,
+            "filename": img_name,
             "dimensions": f"{w}x{h}",
             "visible_spines": visible_spines,
             "detected_boxes": boxes_count,
-            "usable_crops": usable_crops,
+            "unique_usable_spines": unique_usable,
+            "duplicates": duplicates,
+            "grouped_boxes": grouped,
             "false_positives": false_positives,
-            "recall": round(recall, 4),
-            "inference_ms": det_result.inference_ms,
+            "missed_spines": missed,
+            "manual_recall": manual_recall,
+            "manual_precision_proxy": precision_proxy,
+            "inference_ms": infer_ms,
         })
 
     avg_warm_ms = round(sum(warm_latencies) / len(warm_latencies), 2)
     sorted_latencies = sorted(warm_latencies)
     median_warm_ms = sorted_latencies[len(sorted_latencies) // 2]
-    aggregate_recall = round(total_usable / total_visible, 4) if total_visible > 0 else 0.0
+    micro_recall = round(total_unique_usable / total_visible, 4) if total_visible > 0 else 0.0
+    macro_recall = round(sum(r["manual_recall"] for r in benchmark_rows) / len(benchmark_rows), 4)
 
-    print("\nBENCHMARK RESULTS TABLE:")
-    print(f"{'Image':<22} | {'Dims':<10} | {'Visible':<7} | {'Boxes':<5} | {'Usable':<6} | {'FP':<3} | {'Recall':<6} | {'Warm (ms)'}")
-    print("-" * 80)
+    # Save test-images/evaluation.csv
+    eval_csv_path = test_images_dir / "evaluation.csv"
+    with open(eval_csv_path, "w", newline="", encoding="utf-8") as f:
+        fieldnames = [
+            "filename", "visible_spines", "detected_boxes", "unique_usable_spines",
+            "duplicates", "grouped_boxes", "false_positives", "missed_spines",
+            "manual_recall", "manual_precision_proxy", "inference_ms"
+        ]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for r in benchmark_rows:
+            writer.writerow({k: r[k] for k in fieldnames})
+
+    print("\nBENCHMARK RESULTS TABLE (AUDITED METHODOLOGY):")
+    print(f"{'Filename':<22} | {'Vis':<4} | {'Box':<4} | {'Uniq':<4} | {'Dup':<3} | {'Grp':<3} | {'FP':<3} | {'Miss':<4} | {'Recall':<7} | {'PrecProxy':<9} | {'Warm (ms)'}")
+    print("-" * 105)
     for r in benchmark_rows:
-        print(f"{r['image']:<22} | {r['dimensions']:<10} | {r['visible_spines']:<7} | {r['detected_boxes']:<5} | {r['usable_crops']:<6} | {r['false_positives']:<3} | {r['recall']:<6.2%} | {r['inference_ms']} ms")
-    print("-" * 80)
-    print(f"Aggregate Visible Spines:  {total_visible}")
-    print(f"Aggregate Usable Crops:    {total_usable}")
-    print(f"Aggregate False Positives: {total_false_pos}")
-    print(f"Manual Usable-Crop Recall: {aggregate_recall:.2%}")
-    print(f"Model Cold-Start Load:    {load_time_ms:.2f} ms")
-    print(f"Average Warm Inference:    {avg_warm_ms:.2f} ms")
-    print(f"Median Warm Inference:     {median_warm_ms:.2f} ms")
+        print(f"{r['filename']:<22} | {r['visible_spines']:<4} | {r['detected_boxes']:<4} | {r['unique_usable_spines']:<4} | {r['duplicates']:<3} | {r['grouped_boxes']:<3} | {r['false_positives']:<3} | {r['missed_spines']:<4} | {r['manual_recall']:<7.2%} | {r['manual_precision_proxy']:<9.2%} | {r['inference_ms']} ms")
+    print("-" * 105)
+    print(f"Aggregate Visible Spines:         {total_visible}")
+    print(f"Aggregate Detected Boxes:         {total_boxes}")
+    print(f"Aggregate Unique Usable Spines:   {total_unique_usable}")
+    print(f"Aggregate Duplicates:             {total_duplicates}")
+    print(f"Aggregate Grouped Boxes:          {total_grouped}")
+    print(f"Aggregate False Positives:        {total_false_pos}")
+    print(f"Aggregate Missed Spines:          {total_missed}")
+    print(f"Micro Usable-Crop Recall:         {micro_recall:.2%}")
+    print(f"Macro Usable-Crop Recall:         {macro_recall:.2%}")
+    print(f"Images with Zero Usable Detections: {zero_detection_images} of {len(benchmark_rows)}")
+    print(f"Model Cold-Start Load Time:       {load_time_ms:.2f} ms")
+    print(f"Average Warm CPU Latency:         {avg_warm_ms:.2f} ms")
+    print(f"Median Warm CPU Latency:          {median_warm_ms:.2f} ms")
     print("=========================================================\n")
 
     return {
@@ -168,9 +219,10 @@ def run_benchmark(model_name: str = "yolov8n.pt"):
         "avg_warm_ms": avg_warm_ms,
         "median_warm_ms": median_warm_ms,
         "total_visible": total_visible,
-        "total_usable": total_usable,
-        "total_false_pos": total_false_pos,
-        "aggregate_recall": aggregate_recall,
+        "total_unique_usable": total_unique_usable,
+        "micro_recall": micro_recall,
+        "macro_recall": macro_recall,
+        "zero_detection_images": zero_detection_images,
         "rows": benchmark_rows,
     }
 
