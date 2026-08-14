@@ -59,6 +59,12 @@ export default function App() {
     setCurrentTab('scan');
   };
 
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    (window as any).__setScanResult = handleScanComplete;
+    (window as any).__navigateLibrary = handleNavigateLibrary;
+    (window as any).__navigateScan = handleNavigateScan;
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ExpoStatusBar style="dark" />

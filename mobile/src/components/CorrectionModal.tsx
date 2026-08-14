@@ -55,7 +55,7 @@ export const CorrectionModal: React.FC<CorrectionModalProps> = ({
       const res = await apiClient.matchBook(title.trim(), author.trim());
       setMatchResult(res);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to search canonical catalog.');
+      setErrorMsg(err.message || 'Failed to search catalog.');
     } finally {
       setLoading(false);
     }
@@ -140,7 +140,7 @@ export const CorrectionModal: React.FC<CorrectionModalProps> = ({
             {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
 
             <PrimaryButton
-              title="Find Catalog Match"
+              title="Find Match"
               variant="leather"
               onPress={handleSearchMatch}
               loading={loading}
@@ -174,7 +174,7 @@ export const CorrectionModal: React.FC<CorrectionModalProps> = ({
                     ) : null}
 
                     <PrimaryButton
-                      title="Use Canonical Match"
+                      title="Use Match"
                       variant="leather"
                       onPress={() => {
                         onConfirmCanonical(
@@ -191,7 +191,7 @@ export const CorrectionModal: React.FC<CorrectionModalProps> = ({
                 {/* Alternative Candidates */}
                 {matchResult.alternatives && matchResult.alternatives.length > 0 ? (
                   <View style={styles.alternativesSection}>
-                    <Text style={[typography.labelMedium, styles.altLabel]}>OTHER CATALOG CANDIDATES</Text>
+                    <Text style={[typography.labelMedium, styles.altLabel]}>OTHER CATALOG SUGGESTIONS</Text>
                     {matchResult.alternatives.map((alt) => (
                       <TouchableOpacity
                         key={alt.catalog_id}
@@ -215,7 +215,7 @@ export const CorrectionModal: React.FC<CorrectionModalProps> = ({
                 {matchResult.state === 'unmatched' ? (
                   <View style={styles.unmatchedSection}>
                     <Text style={[typography.bodySmall, styles.unmatchedNote]}>
-                      Not found in the canonical catalog. You can still add this book directly to your personal library.
+                      Not found in your catalog. You can still add this book directly to your personal library.
                     </Text>
                   </View>
                 ) : null}

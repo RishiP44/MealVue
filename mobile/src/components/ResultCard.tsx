@@ -233,7 +233,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             ) : (
               <View style={styles.unmatchedBox}>
                 <Text style={[typography.bodySmall, styles.unmatchedExplain]}>
-                  We couldn't confidently match this spine to our canonical catalog.
+                  We couldn't find a confident match in your catalog.
                 </Text>
                 <View style={styles.ocrBox}>
                   <Text style={[typography.labelSmall, styles.boxHeader]}>DETECTED OCR</Text>

@@ -544,7 +544,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
       {!savedSummary ? (
         <View style={styles.stickyBottomWrapper}>
           <PrimaryButton
-            title={selectedCount > 0 ? `Add ${selectedCount} ${selectedCount === 1 ? 'book' : 'books'}` : 'Select Books to Add'}
+            title={selectedCount > 0 ? (selectedCount === 1 ? 'Add 1 book' : `Add ${selectedCount} books`) : 'Add selected books'}
             variant="leather"
             onPress={handleAddSelectedToLibrary}
             disabled={selectedCount === 0}
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    paddingBottom: 120,
+    paddingBottom: 180,
     maxWidth: 600,
     width: '100%',
     alignSelf: 'center',
