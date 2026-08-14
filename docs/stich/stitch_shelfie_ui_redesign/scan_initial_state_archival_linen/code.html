@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Shelfie - Scan</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&amp;family=Geist:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#e9e1dc",
+                        "surface-tint": "#934b19",
+                        "on-secondary-fixed-variant": "#4b4642",
+                        "surface-container": "#f5ece3",
+                        "on-secondary-fixed": "#1e1b18",
+                        "on-primary-fixed-variant": "#753401",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#f4ecd8", /* Parchment background */
+                        "on-surface": "#3c2a21", /* Dark chocolate accents */
+                        "primary-fixed": "#ffdbc9",
+                        "outline-variant": "#dac2b6",
+                        "tertiary-fixed-dim": "#f0bd8b",
+                        "on-secondary-container": "#67625e",
+                        "tertiary-fixed": "#ffdcbd",
+                        "surface-dim": "#e1d9d0",
+                        "on-background": "#3c2a21", /* Dark chocolate text */
+                        "on-error": "#ffffff",
+                        "primary": "#3c2a21", /* Dark chocolate primary */
+                        "secondary-container": "#e6ded9",
+                        "on-tertiary-container": "#f9c592",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#eae1d8",
+                        "on-tertiary-fixed-variant": "#623f18",
+                        "primary-container": "#8b4513",
+                        "error-container": "#ffdad6",
+                        "background": "#f4ecd8", /* Parchment background */
+                        "surface-container-low": "#fbf2e9",
+                        "secondary-fixed-dim": "#cdc5c0",
+                        "tertiary-container": "#765027",
+                        "inverse-primary": "#ffb68c",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#34302a",
+                        "outline": "#877369",
+                        "on-tertiary-fixed": "#2c1600",
+                        "on-primary-fixed": "#321200",
+                        "secondary": "#635d5a",
+                        "inverse-on-surface": "#f8efe6",
+                        "primary-fixed-dim": "#ffb68c",
+                        "surface": "#f4ecd8", /* Parchment surface */
+                        "on-primary-container": "#ffc29f",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#f0e7de",
+                        "tertiary": "#5b3912",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#5a4538", /* Darker variant */
+                        "surface-variant": "#eae1d8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "2xl": "1rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "gutter": "24px",
+                        "container-max-width": "1280px",
+                        "margin-desktop": "40px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Geist"],
+                        "label-md": ["Geist"],
+                        "headline-lg-mobile": ["Playfair Display"],
+                        "body-lg": ["Geist"],
+                        "headline-sm": ["Playfair Display"],
+                        "body-sm": ["Geist"],
+                        "headline-lg": ["Playfair Display"],
+                        "display-lg": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "800" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "800" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe { padding-top: env(safe-area-inset-top); }
+        body {
+            -webkit-tap-highlight-color: transparent;
+            background-color: #f4ecd8;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill-1 {
+            font-variation-settings: 'FILL' 1, 'wght' 300;
+        }
+        
+        /* Texture utilities */
+        .texture-linen {
+            background-image: 
+                linear-gradient(rgba(60, 42, 33, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(60, 42, 33, 0.02) 1px, transparent 1px);
+            background-size: 4px 4px;
+        }
+        
+        .btn-leather {
+            background-color: #3c2a21;
+            background-image: linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(0,0,0,0.1));
+            color: #e5b66d;
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.5);
+            border: 1px solid #2a1c15;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid #dac2b6;
+            color: #3c2a21;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="docked full-width top-0 border-b border-[#e8decb] bg-background flex flex-col pt-safe sticky z-40">
+<div class="flex items-center justify-between px-margin-mobile md:px-margin-desktop w-full max-w-[800px] mx-auto h-16">
+<button class="text-primary hover:bg-[#e8decb] transition-colors rounded-full p-2 -ml-2 hover:opacity-80 duration-150 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary-container">
+<span class="material-symbols-outlined text-[24px]">menu</span>
+</button>
+<h1 class="font-display-lg text-[32px] leading-[40px] font-extrabold text-primary tracking-tight">Shelfie</h1>
+<button class="text-primary hover:bg-[#e8decb] transition-colors rounded-full p-2 -mr-2 hover:opacity-80 duration-150 focus:outline-none focus:ring-2 focus:ring-primary-container">
+<span class="material-symbols-outlined text-[24px]">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center px-margin-mobile md:px-margin-desktop w-full max-w-[800px] mx-auto pb-[calc(64px+env(safe-area-inset-bottom)+24px)] pt-8">
+<div class="w-full flex flex-col items-center text-center space-y-6 mb-12">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-background max-w-sm font-extrabold">Turn a shelf into your library.</h2>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-md">For best results, keep book spines visible and the shelf well lit.</p>
+</div>
+<div class="w-full max-w-sm space-y-4 flex flex-col">
+<button class="w-full btn-leather texture-linen rounded-2xl py-4 px-6 flex items-center justify-center space-x-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-primary active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined icon-fill-1 text-[24px]">photo_camera</span>
+<span class="font-headline-sm text-headline-sm">Take a photo</span>
+</button>
+<button class="w-full btn-secondary rounded-2xl py-4 px-6 flex items-center justify-center space-x-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-primary hover:bg-[#e8decb] transition-colors">
+<span class="material-symbols-outlined text-[24px]">image</span>
+<span class="font-headline-sm text-headline-sm">Choose from library</span>
+</button>
+</div>
+<div class="mt-16 w-full max-w-sm">
+<a class="group block w-full bg-surface-container-lowest border border-[#dac2b6] rounded-2xl p-4 hover:border-primary transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary shadow-sm" href="#">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full bg-[#fbf6ec] flex items-center justify-center text-[#3c2a21] group-hover:bg-[#e8decb] transition-colors border border-[#e8decb]">
+<span class="material-symbols-outlined text-[20px] icon-fill-1">book</span>
+</div>
+<div class="flex flex-col text-left">
+<span class="font-body-md text-body-md font-medium text-on-background group-hover:text-primary transition-colors">Personal Library</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">12 books saved</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</a>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 max-w-[800px] left-1/2 -translate-x-1/2 px-4 pb-safe border-t border-[#e8decb] bg-background">
+<!-- Active Tab: Scan -->
+<a class="flex flex-col items-center justify-center bg-[#3c2a21] text-[#e5b66d] rounded-2xl px-6 py-1.5 transition-all scale-95 duration-100 flex-1 max-w-[120px] focus:outline-none focus:ring-2 focus:ring-primary texture-linen" href="#">
+<span class="material-symbols-outlined text-[24px] icon-fill-1">barcode_scanner</span>
+<span class="font-label-md text-label-md mt-1">Scan</span>
+</a>
+<!-- Inactive Tab: Library -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all flex-1 max-w-[120px] focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl py-1.5 group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform duration-200">library_books</span>
+<span class="font-label-md text-label-md mt-1">Library</span>
+</a>
+</nav>
+</body></html>

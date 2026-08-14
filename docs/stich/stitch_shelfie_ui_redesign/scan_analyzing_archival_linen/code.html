@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Shelfie - Scanning</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#e9e1dc",
+                        "surface-tint": "#934b19",
+                        "on-secondary-fixed-variant": "#4b4642",
+                        "surface-container": "#f5ece3",
+                        "on-secondary-fixed": "#1e1b18",
+                        "on-primary-fixed-variant": "#753401",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#fdfcf8",
+                        "on-surface": "#5d2e0a",
+                        "primary-fixed": "#ffdbc9",
+                        "outline-variant": "#dac2b6",
+                        "tertiary-fixed-dim": "#f0bd8b",
+                        "on-secondary-container": "#67625e",
+                        "tertiary-fixed": "#ffdcbd",
+                        "surface-dim": "#e1d9d0",
+                        "on-background": "#5d2e0a",
+                        "on-error": "#ffffff",
+                        "primary": "#5d2e0a",
+                        "secondary-container": "#e6ded9",
+                        "on-tertiary-container": "#f9c592",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#eae1d8",
+                        "on-tertiary-fixed-variant": "#623f18",
+                        "primary-container": "#8b4513",
+                        "error-container": "#ffdad6",
+                        "background": "#fdfcf8",
+                        "surface-container-low": "#fbf2e9",
+                        "secondary-fixed-dim": "#cdc5c0",
+                        "tertiary-container": "#765027",
+                        "inverse-primary": "#ffb68c",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#34302a",
+                        "outline": "#877369",
+                        "on-tertiary-fixed": "#2c1600",
+                        "on-primary-fixed": "#321200",
+                        "secondary": "#635d5a",
+                        "inverse-on-surface": "#f8efe6",
+                        "primary-fixed-dim": "#ffb68c",
+                        "surface": "#fdfcf8",
+                        "on-primary-container": "#ffc29f",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#f0e7de",
+                        "tertiary": "#5b3912",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#5a4538",
+                        "surface-variant": "#eae1d8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "2xl": "1rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "gutter": "24px",
+                        "container-max-width": "1280px",
+                        "margin-desktop": "40px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Geist"],
+                        "label-md": ["Geist"],
+                        "headline-lg-mobile": ["Playfair Display"],
+                        "body-lg": ["Geist"],
+                        "headline-sm": ["Playfair Display"],
+                        "body-sm": ["Geist"],
+                        "headline-lg": ["Playfair Display"],
+                        "display-lg": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "800" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "800" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&amp;family=Geist:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            background-color: #fdfcf8;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #dac2b6;
+            border-radius: 4px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill-1 {
+            font-variation-settings: 'FILL' 1, 'wght' 300;
+        }
+        .paper-layer {
+            background-color: #fbf6ec;
+            border: 12px solid #e8decb;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05), 0 4px 12px rgba(93,46,10,0.1);
+        }
+        .texture-linen {
+            background-image: 
+                linear-gradient(rgba(93, 46, 10, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(93, 46, 10, 0.02) 1px, transparent 1px);
+            background-size: 4px 4px;
+        }
+        .btn-leather {
+            background-color: #5d2e0a;
+            background-image: linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(0,0,0,0.1));
+            color: #e5b66d;
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.5);
+            border: 1px solid #3c1e07;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .scan-line {
+            animation: scan 3s linear infinite;
+        }
+        @keyframes scan {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(200px); }
+            100% { transform: translateY(0); }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md antialiased pb-20 md:pb-0">
+<!-- TopAppBar -->
+<header class="docked full-width top-0 bg-background border-b border-[#e8decb] flat no shadows z-40 sticky top-0 md:hidden">
+<div class="flex items-center justify-between px-margin-mobile w-full max-w-[800px] mx-auto h-16">
+<button aria-label="Menu" class="text-primary hover:bg-[#e8decb] transition-colors rounded-full p-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-display-lg text-[32px] leading-[40px] font-extrabold text-primary tracking-tight">Shelfie</h1>
+<button aria-label="User Profile" class="text-primary hover:bg-[#e8decb] transition-colors rounded-full p-2">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Desktop Header (Hidden on Mobile) -->
+<header class="hidden md:flex docked full-width top-0 bg-background border-b border-[#e8decb] flat no shadows z-40 sticky top-0">
+<div class="flex items-center justify-between px-margin-desktop w-full max-w-[1280px] mx-auto h-20">
+<h1 class="font-display-lg text-display-lg text-primary tracking-tight font-extrabold">Shelfie</h1>
+<nav class="flex gap-8">
+<a class="font-label-md text-label-md text-primary hover:bg-[#e8decb] transition-colors px-4 py-2 rounded-full border border-primary flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">barcode_scanner</span>
+                    Scan
+                </a>
+<a class="font-label-md text-label-md text-secondary hover:bg-[#e8decb] transition-colors px-4 py-2 rounded-full flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">library_books</span>
+                    Library
+                </a>
+</nav>
+<button class="text-primary hover:bg-[#e8decb] transition-colors rounded-full p-2 flex items-center gap-2">
+<span class="font-label-md text-label-md">User Profile</span>
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center px-margin-mobile pb-32 max-w-[800px] mx-auto w-full relative">
+<div class="text-center mb-12 space-y-4 max-w-md w-full z-10 relative">
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface font-extrabold">Analyzing your bookshelf.</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Finding books, reading spines, and matching your library.</p>
+</div>
+<!-- Scanning Visual -->
+<div class="relative w-full max-w-sm aspect-[3/4] paper-layer texture-linen rounded-2xl overflow-hidden shadow-sm flex items-center justify-center p-8 mb-8 z-10">
+<!-- Minimalist Book Stack Representation -->
+<div class="flex flex-col-reverse justify-end h-full gap-2 w-full opacity-60">
+<div class="w-full h-8 bg-[#e8decb] rounded-sm border border-[#d4c5b0] relative"></div>
+<div class="w-[90%] h-12 bg-[#f4ecd8] rounded-sm border border-[#d4c5b0] ml-2 relative"></div>
+<div class="w-[85%] h-6 bg-[#dac2b6] rounded-sm border border-[#d4c5b0] relative"></div>
+<div class="w-[95%] h-16 bg-[#e8decb] rounded-sm border border-[#d4c5b0] ml-1 relative"></div>
+<div class="w-[80%] h-10 bg-[#f4ecd8] rounded-sm border border-[#d4c5b0] ml-4 relative"></div>
+<div class="w-full h-14 bg-[#e8decb] rounded-sm border border-[#d4c5b0] relative"></div>
+</div>
+<!-- The Scanner Line -->
+<div class="absolute top-8 left-4 right-4 h-0.5 bg-[#e5b66d] shadow-[0_0_8px_rgba(229,182,109,0.5)] scan-line rounded-full z-20">
+<div class="absolute -top-6 -left-2 w-[calc(100%+16px)] h-12 bg-gradient-to-b from-transparent via-[rgba(229,182,109,0.1)] to-[rgba(229,182,109,0.2)] rounded-sm pointer-events-none blur-sm"></div>
+</div>
+</div>
+<!-- Elegant Spinner -->
+<div class="flex flex-col items-center justify-center gap-4 z-10">
+<div class="w-12 h-12 border-2 border-[#e8decb] border-t-[#5d2e0a] rounded-full animate-spin"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Processing</span>
+</div>
+<!-- Decorative background elements -->
+<div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] z-0 overflow-hidden texture-linen">
+<div class="w-[800px] h-[800px] border border-on-surface rounded-full absolute mix-blend-multiply scale-150 blur-3xl"></div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="fixed bottom-0 w-full z-50 border-t border-[#e8decb] bg-background flat no shadows md:hidden">
+<div class="flex justify-around items-center h-16 max-w-[800px] mx-auto px-4 pb-safe">
+<button class="flex flex-col items-center justify-center bg-[#5d2e0a] text-[#e5b66d] rounded-2xl px-6 py-1.5 scale-95 duration-100 transition-all group texture-linen">
+<span class="material-symbols-outlined icon-fill-1 mb-1">barcode_scanner</span>
+<span class="font-label-md text-label-md">Scan</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all group">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform duration-200">library_books</span>
+<span class="font-label-md text-label-md">Library</span>
+</button>
+</div>
+</nav>
+</body></html>

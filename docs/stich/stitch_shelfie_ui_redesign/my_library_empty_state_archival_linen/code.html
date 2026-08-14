@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Shelfie - My Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#e9e1dc",
+                        "surface-tint": "#934b19",
+                        "on-secondary-fixed-variant": "#4b4642",
+                        "surface-container": "#f5ece3",
+                        "on-secondary-fixed": "#1e1b18",
+                        "on-primary-fixed-variant": "#753401",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#fff8f3",
+                        "on-surface": "#1f1b16",
+                        "primary-fixed": "#ffdbc9",
+                        "outline-variant": "#dac2b6",
+                        "tertiary-fixed-dim": "#f0bd8b",
+                        "on-secondary-container": "#67625e",
+                        "tertiary-fixed": "#ffdcbd",
+                        "surface-dim": "#e1d9d0",
+                        "on-background": "#1f1b16",
+                        "on-error": "#ffffff",
+                        "primary": "#6c2f00",
+                        "secondary-container": "#e6ded9",
+                        "on-tertiary-container": "#f9c592",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#eae1d8",
+                        "on-tertiary-fixed-variant": "#623f18",
+                        "primary-container": "#8b4513",
+                        "error-container": "#ffdad6",
+                        "background": "#fff8f3",
+                        "surface-container-low": "#fbf2e9",
+                        "secondary-fixed-dim": "#cdc5c0",
+                        "tertiary-container": "#765027",
+                        "inverse-primary": "#ffb68c",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#34302a",
+                        "outline": "#877369",
+                        "on-tertiary-fixed": "#2c1600",
+                        "on-primary-fixed": "#321200",
+                        "secondary": "#635d5a",
+                        "inverse-on-surface": "#f8efe6",
+                        "primary-fixed-dim": "#ffb68c",
+                        "surface": "#fff8f3",
+                        "on-primary-container": "#ffc29f",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#f0e7de",
+                        "tertiary": "#5b3912",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#54433a",
+                        "surface-variant": "#eae1d8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "gutter": "24px",
+                        "container-max-width": "1280px",
+                        "margin-desktop": "40px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Geist"],
+                        "label-md": ["Geist"],
+                        "headline-lg-mobile": ["Playfair Display"],
+                        "body-lg": ["Geist"],
+                        "headline-sm": ["Playfair Display"],
+                        "body-sm": ["Geist"],
+                        "headline-lg": ["Playfair Display"],
+                        "display-lg": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="bg-background border-b border-outline-variant w-full max-w-[800px] mx-auto sticky top-0 z-40">
+<div class="flex items-center justify-between px-margin-mobile md:px-margin-desktop h-16 w-full">
+<button aria-label="Menu" class="text-primary hover:bg-surface-container-low transition-colors rounded-full p-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-display-lg text-[32px] md:text-display-lg text-primary tracking-tight">Shelfie</h1>
+<button aria-label="User Profile" class="text-primary hover:bg-surface-container-low transition-colors rounded-full p-2 flex items-center justify-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant overflow-hidden flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-sm">person</span>
+</div>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow flex flex-col items-center justify-center px-margin-mobile md:px-margin-desktop py-12 md:py-24 max-w-[800px] mx-auto w-full pb-32">
+<div class="text-center space-y-6 max-w-md w-full flex flex-col items-center">
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-background">
+                My Library
+            </h2>
+<!-- Empty State Illustration/Icon container -->
+<div class="w-48 h-48 md:w-64 md:h-64 rounded-full bg-surface-container-lowest border border-outline-variant flex items-center justify-center shadow-sm mb-4 relative overflow-hidden group">
+<!-- Decorative subtle rings -->
+<div class="absolute inset-0 rounded-full border border-surface-container-low scale-75 opacity-50"></div>
+<div class="absolute inset-0 rounded-full border border-surface-container-highest scale-50 opacity-30"></div>
+<span class="material-symbols-outlined text-outline text-6xl md:text-8xl font-light opacity-80 group-hover:scale-105 transition-transform duration-500" style="font-variation-settings: 'wght' 200, 'FILL' 0;">
+                    menu_book
+                </span>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-sm mx-auto leading-relaxed">
+                Your library is empty. Scan a shelf to add your first books.
+            </p>
+<div class="pt-8 w-full">
+<button class="w-full md:w-auto md:min-w-[240px] bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary font-label-md text-label-md py-4 px-8 rounded-full shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">barcode_scanner</span>
+                    Scan a shelf
+                </button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] z-50 bg-background border-t border-outline-variant h-16 px-4 pb-safe flex justify-around items-center">
+<!-- Scan (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-secondary-container hover:text-primary transition-all flex-1 h-full pt-1">
+<div class="px-5 py-1 rounded-full transition-colors">
+<span class="material-symbols-outlined">barcode_scanner</span>
+</div>
+<span class="font-label-md text-[10px] mt-1">Scan</span>
+</button>
+<!-- Library (Active) -->
+<button class="flex flex-col items-center justify-center text-on-primary-container flex-1 h-full pt-1 opacity-80 duration-150 scale-95">
+<div class="bg-primary-container rounded-full px-5 py-1 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">library_books</span>
+</div>
+<span class="font-label-md text-[10px] mt-1 text-primary">Library</span>
+</button>
+</nav>
+</body></html>

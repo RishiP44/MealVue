@@ -4,9 +4,26 @@ Shelfie is a mobile application and API pipeline that turns a photograph of a bo
 
 ## Project Status
 
-- **Current Stage**: Phase 3 — Local Book-Spine Detection (`PASSED`)
+- **Current Stage**: Phase 6 — Polished Expo Mobile Product (Approved Stitch Archival Linen Redesign) (`PASSED`)
 - **Backend Stack**: Python 3.11+, Django 5.2+, Django REST Framework 3.18+, Ultralytics 8.4+, PyTorch 2.13+ (CPU), RapidFuzz 3.14+, SQLite
-- **Mobile Stack**: React Native, Expo SDK 57+, TypeScript 6+
+- **Mobile Stack**: React Native, Expo SDK 57+, TypeScript 6+, Expo Web
+
+---
+
+## Visual Design & Architecture (Phase 6)
+
+Shelfie features an editorial Archival Linen visual design with warm parchment canvas, rich leather action elements, debossed gold accents, and serif typography.
+
+![Shelfie Scan Screen](docs/screenshots/scan.png)
+*Initial Shelfie Scan Screen with clear user guidance, photo capture, and personal library shortcut.*
+
+| Screen | Description |
+| :--- | :--- |
+| **Scan Initial & Preview** | Clean capture workflow with camera, photo library picking, and image preview. |
+| **Scanning / Analyzing** | Honest loading state with elapsed seconds counter (no fake progress bars). |
+| **Results & Review** | Structured breakdown summary, 5 collapsible status sections (`READY TO ADD`, `NEEDS REVIEW`, `NO MATCH`, `COULDN'T READ`, `PROCESSING ISSUES`), comparison boxes (DETECTED OCR vs SUGGESTED MATCH), alternative candidate chips, and sticky "Add N books" action. |
+| **Correction Modal** | Archival paper modal prefilled with detected title/author, live catalog search, and direct manual addition. |
+| **Personal Library** | Populated book list with search filtering, edition metadata badges, and circular empty state illustration. |
 
 ---
 
@@ -32,54 +49,56 @@ Shelfie is a mobile application and API pipeline that turns a photograph of a bo
    ```bash
    pip install -r backend/requirements.txt
    ```
-3. Run complete backend unit test suite (35 tests passing):
+3. Run complete backend unit and API test suite (65 tests passing):
    ```bash
    cd backend
    pytest
    ```
-4. Run local CPU book detector benchmark (evaluates 5 test photos):
-   ```bash
-   python backend/shelfie/scripts/benchmark_detector.py
-   ```
-5. Run deterministic catalog matcher benchmark:
-   ```bash
-   python backend/shelfie/scripts/benchmark_matcher.py
-   ```
-6. Start the Django development server:
+4. Start the Django development server:
    ```bash
    python backend/manage.py runserver 127.0.0.1:8000
    ```
    Verify health endpoint in browser/cURL:
    `http://127.0.0.1:8000/api/health/` $\rightarrow$ `{"status": "ok"}`
 
+### 3. Mobile App Setup (Expo & Web)
+1. Navigate to the mobile directory and install dependencies:
+   ```bash
+   cd mobile
+   npm install
+   ```
+2. Check TypeScript types:
+   ```bash
+   npx tsc --noEmit
+   ```
+3. Start the Expo development server:
+   ```bash
+   npx expo start --web
+   ```
+   Open `http://localhost:8081` (or the printed port) in your browser.
+
 ---
 
-## Local Computer Vision Detector Methodology (Phases 3, 3.1 & 3.2)
+## End-to-End System Architecture
 
-- **Selected Pretrained Model**: **`YOLO26n` (`yolo26n.pt`)** (5.3 MB pretrained weights on COCO dataset, operating at tuned `conf = 0.20` on CPU at `imgsz = 1280`). First run downloads model weights automatically.
-- **CPU Inference**: Explicitly executed on CPU (`device="cpu"`) per take-home guidelines.
-- **Dynamic Label Resolution**: Class ID resolved dynamically (`class_name.lower() == "book"`).
-- **Spine Feature Resolution**: High-resolution inference (`imgsz=1280`) preserves thin vertical book spine features.
-- **Bounding Box Padding**: 4% expansion padding applied safely around detected bounds before crop extraction.
-- **Spatial Sorting**: Deterministically sorts detections top-to-bottom (shelf height bands) and left-to-right, assigning stable IDs (`book_001`, `book_002`, ...).
-- **AGPL Licensing Note**: Ultralytics uses AGPL-3.0 licensing; selected for a time-boxed take-home portfolio exercise. Proprietary production deployment would require separate licensing review or a permissive alternative model.
-
-## Hosted Vision-Language Extraction Methodology (Phase 4)
-
-- **Provider**: OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`) using HTTPX.
-- **Model**: `google/gemini-2.5-flash` (`VLM_MODEL` environment variable).
-- **Batching & Compression**: Batches up to 5 crops (`VLM_BATCH_SIZE=5`) encoded as base64 JPEG data URLs.
-- **Structured Schema**: Enforces strict JSON Schema for transcription (`crop_id`, `title`, `author`, `readability`).
-- **Resilience**: 1 retry for transient rate limits (429), timeouts, and 5xx errors; non-retriable immediate failure for 401/400.
-- **Decoupled Architecture**: VLM transcribes raw visible text without receiving or influencing `catalog.csv`.
-
-## Backend REST API Endpoints (Phase 5)
-
-- **`GET /api/health/`**: Service liveness and health probe.
-- **`POST /api/analyze/`**: Accepts multipart/form-data with `image` (max 15 MB). Executes Detector $\rightarrow$ Padded Crops $\rightarrow$ Hosted Gemini 2.5 Flash $\rightarrow$ RapidFuzz `catalog.csv` Matcher. Returns transient item states (`matched`, `needs_review`, `unmatched`, `unreadable`, `extraction_failed`), summary, and latency/cost metrics. Zero auto-persistence.
-- **`POST /api/match/`**: Accepts user-corrected `title` / `author` JSON and reruns deterministic matching on `catalog.csv`.
-- **`GET /api/library/`**: Returns list of persisted confirmed personal library books (`LibraryBook` SQLite model) ordered by `-added_at`.
-- **`POST /api/library/`**: Explicit human confirmation endpoint accepting single or batch book additions. Populates canonical metadata from `catalog.csv` and deduplicates by `catalog_id`.
+```
+[Bookshelf Photo]
+        │
+        ▼
+[Local YOLO26n (CPU)] ──► Padded Crops (1280px)
+        │
+        ▼
+[Hosted Gemini 2.5 Flash] ──► Structured Text Extraction (Crop Batches)
+        │
+        ▼
+[RapidFuzz Matcher] ──► Canonical catalog.csv (Confidence Routing)
+        │
+        ▼
+[Human-in-the-Loop Review UI] ──► Transient 5-State Review & Correction
+        │ (Explicit Confirmation)
+        ▼
+[SQLite / LibraryBook] ──► Persisted Personal Library
+```
 
 ---
 
@@ -97,5 +116,3 @@ Shelfie is a mobile application and API pipeline that turns a photograph of a bo
 - **Batching Latency Advantage**: **`3.71x faster`** wall-clock throughput (`batch_size=5` vs `batch_size=1`) with **`48.2% token savings`**
 - **Full End-to-End Pipeline Latency (Phase 5)**: **`4,553.96 ms` median** (`6,549.60 ms` mean across test photographs)
 - **Average API Cost per Shelf Photograph (Phase 5)**: **`$0.002949`** (~0.3 cents per complete photograph)
-
-
