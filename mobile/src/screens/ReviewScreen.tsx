@@ -197,7 +197,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
   // Persist selected books to Library
   const handleAddSelectedToLibrary = async () => {
-    if (selectedCount === 0) return;
+    if (selectedCount === 0 || savingBooks) return;
     setSavingBooks(true);
     setSaveError(null);
 

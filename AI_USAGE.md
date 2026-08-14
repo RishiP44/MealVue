@@ -82,14 +82,25 @@ This document maintains an honest, transparent record of how artificial intellig
   - Built comprehensive mock-based API and pipeline test suites in `backend/shelfie/tests/test_api.py` and `test_pipeline.py` (64 total passing backend tests).
   - Executed and logged real end-to-end benchmark (`backend/shelfie/scripts/benchmark_pipeline.py`) across 4 test photographs, exporting metrics to `test-images/pipeline_evaluation.csv`.
 
-### Phase 6 — Polished Expo Mobile Product (Approved Stitch Archival Linen Redesign)
+### Phase 6.1 — Final UI Accuracy & Polish Pass
 - **AI Tool**: Antigravity (Gemini 3.7 Flash).
 - **Tasks**:
-  - Reconciled approved Stitch UI export (`docs/stich/stitch_shelfie_ui_redesign/`) into React Native theme tokens (`colors.ts`, `spacing.ts`, `typography.ts`).
-  - Built full suite of mobile UI components (`AppHeader.tsx`, `PrimaryButton.tsx`, `StatusBadge.tsx`, `EmptyState.tsx`, `LoadingState.tsx`, `ResultCard.tsx`, `CorrectionModal.tsx`).
-  - Implemented `ScanScreen.tsx`, `ReviewScreen.tsx`, `LibraryScreen.tsx`, and `App.tsx` matching the Archival Linen editorial design language with centered max-width constraint for desktop browsers.
-  - Verified TypeScript compilation (`npx tsc --noEmit` passing with 0 errors), Expo web bundling (`npx expo export --platform web`), and backend regression tests (65 tests passing).
-  - Exported representative UI screenshots to `docs/screenshots/`.
+  - Replaced Stitch static mockups in `docs/screenshots/` with authentic screenshots captured directly from the running Expo web application (`scan.png`, `review.png`, `library.png`, `library_empty.png`, `correction_modal.png`).
+  - Refined button copy for explicit selection counts (`"Add selected books"` when disabled, `"Add 1 book"`, `"Add N books"`).
+  - Replaced internal technical terms ("canonical catalog") with consumer-friendly language ("your catalog", "OTHER CATALOG SUGGESTIONS").
+  - Increased scroll view bottom clearance (`paddingBottom: 180`) on ReviewScreen for unobstructed access to all cards.
+
+### Phase 7 — Adversarial QA, Failure Hardening & Product Verification
+- **AI Tool**: Antigravity (Gemini 3.7 Flash).
+- **Tasks**:
+  - Executed automated secret scanning across repository tracking history (0 credentials found).
+  - Performed dependency audit confirming absence of temporary automation tools (Selenium) and research packages in production requirements.
+  - Implemented and validated bad upload test matrix (missing image, 0-byte file, corrupt image, oversized file, unsupported format).
+  - Hardened hosted VLM error handling for 401/403 (immediate failure), 429/500/timeout (bounded retry), malformed JSON, and partial batches.
+  - Added frontend network exception catcher in `ApiClient` and double-submission guards in `ScanScreen.tsx` and `ReviewScreen.tsx`.
+  - Added new adversarial unit & integration tests in `backend/shelfie/tests/test_api.py`, bringing the backend test suite to 72 passing tests (zero paid API calls).
+  - Conducted controlled live smoke test on `test-images/shelf_easy.jpg` recording exact latency, stage breakdown, and cost.
+  - Documented findings, test matrices, and limitations in `docs/QA_REPORT.md` and updated `docs/BUILD_STATE.md`.
 
 ---
 

@@ -37,6 +37,9 @@ class ApiClient {
       if (err.name === 'AbortError') {
         throw new Error('Analysis timed out. The server took longer than 60 seconds to process the shelf.');
       }
+      if (err.message && (err.message.includes('fetch') || err.message.includes('Network') || err.name === 'TypeError')) {
+        throw new Error("We couldn't connect to Shelfie. Please check that the server is running and try again.");
+      }
       throw err;
     } finally {
       clearTimeout(timeoutId);

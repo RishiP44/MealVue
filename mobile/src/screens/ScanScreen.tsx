@@ -98,7 +98,7 @@ export const ScanScreen: React.FC<ScanScreenProps> = ({
 
   // Execute bookshelf analysis
   const handleAnalyze = async () => {
-    if (!selectedImageUri) return;
+    if (!selectedImageUri || loading) return;
     setLoading(true);
     setErrorMessage(null);
     setNoBooksWarning(false);

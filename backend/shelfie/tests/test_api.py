@@ -409,3 +409,121 @@ class TestLibraryEndpoints:
         # Most recently added first (-added_at)
         assert resp.data["books"][0]["confirmed_title"] == "Second Added"
         assert resp.data["books"][1]["confirmed_title"] == "First Added"
+
+    def test_post_invalid_catalog_id_returns_error(self, api_client):
+        url = reverse("library_books")
+        # Non-existent catalog ID and no title provided
+        resp = api_client.post(url, {"catalog_id": "BK9999"}, format="json")
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.data["error"]["code"] == "invalid_request"
+
+    def test_post_missing_title_when_catalog_id_is_none_returns_error(self, api_client):
+        url = reverse("library_books")
+        # catalog_id is null and confirmed_title is empty
+        resp = api_client.post(url, {"confirmed_author": "Only Author"}, format="json")
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.data["error"]["code"] == "invalid_request"
+
+
+@pytest.mark.django_db
+class TestAdversarialUploadsAndFailures:
+    """Adversarial QA test cases for bad uploads, partial success, and missing config."""
+
+    def test_analyze_empty_file_0_bytes(self, api_client):
+        url = reverse("analyze_shelf")
+        empty_file = io.BytesIO(b"")
+        empty_file.name = "empty.jpg"
+        resp = api_client.post(url, {"image": empty_file}, format="multipart")
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.data["error"]["code"] == "invalid_image"
+
+    def test_analyze_corrupt_jpeg_truncated(self, api_client):
+        url = reverse("analyze_shelf")
+        corrupt_file = io.BytesIO(b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00")
+        corrupt_file.name = "truncated.jpg"
+        resp = api_client.post(url, {"image": corrupt_file}, format="multipart")
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.data["error"]["code"] == "invalid_image"
+
+    def test_analyze_oversized_image_limit(self, api_client, sample_jpeg_bytes):
+        url = reverse("analyze_shelf")
+        # Patch MAX_IMAGE_SIZE_BYTES to a small limit (e.g. 50 bytes) so sample image exceeds it
+        with patch("shelfie.views.MAX_IMAGE_SIZE_BYTES", 50):
+            file_obj = io.BytesIO(sample_jpeg_bytes)
+            file_obj.name = "huge.jpg"
+            resp = api_client.post(url, {"image": file_obj}, format="multipart")
+            assert resp.status_code == status.HTTP_400_BAD_REQUEST
+            assert resp.data["error"]["code"] == "image_too_large"
+
+    @patch("shelfie.services.pipeline.BookDetector.detect_books")
+    @patch("shelfie.services.pipeline.VLMService.extract_spines")
+    def test_analyze_partial_success_with_all_five_distinct_states(
+        self, mock_vlm, mock_detect, api_client, sample_jpeg_bytes
+    ):
+        # 5 detected books
+        mock_detect.return_value = DetectionResult(
+            image_width=1000,
+            image_height=800,
+            detections=[
+                {"detection_id": f"crop_{i}", "bbox": {"x1": i*100, "y1": 10, "x2": (i+1)*100, "y2": 500, "width": 100, "height": 490}, "detector_confidence": 0.85}
+                for i in range(5)
+            ],
+            inference_ms=100.0,
+        )
+
+        # Mock VLM extractions:
+        # crop_0 -> Unambiguous match (The Fellowship of the Ring -> BK0003, state: matched)
+        # crop_1 -> Ambiguous match (The Hobbit -> multiple editions, state: needs_review)
+        # crop_2 -> Unmatched book not in catalog.csv (Advanced Quantum Thermodynamics, state: unmatched)
+        # crop_3 -> Unreadable spine (readability: unreadable, state: unreadable)
+        # crop_4 -> Extraction failed (status: extraction_failed, state: extraction_failed)
+        mock_vlm.return_value = VLMBatchResult(
+            extractions=[
+                VLMExtraction(crop_id="crop_0", title="The Fellowship of the Ring", author="J. R. R. Tolkien", readability="readable", status="success"),
+                VLMExtraction(crop_id="crop_1", title="The Hobbit", author="J. R. R. Tolkien", readability="readable", status="success"),
+                VLMExtraction(crop_id="crop_2", title="Advanced Quantum Thermodynamics", author="Unknown Professor", readability="readable", status="success"),
+                VLMExtraction(crop_id="crop_3", title=None, author=None, readability="unreadable", status="success"),
+                VLMExtraction(crop_id="crop_4", title=None, author=None, readability=None, status="extraction_failed", error_reason="provider_timeout"),
+            ],
+            metrics=VLMBatchMetrics(request_count=1, crop_count=5, prompt_tokens=1500, completion_tokens=100, total_tokens=1600, cost=0.001),
+        )
+
+        url = reverse("analyze_shelf")
+        file_obj = io.BytesIO(sample_jpeg_bytes)
+        file_obj.name = "shelf_partial.jpg"
+
+        resp = api_client.post(url, {"image": file_obj}, format="multipart")
+
+        assert resp.status_code == status.HTTP_200_OK
+        data = resp.data
+        assert data["status"] == "partial_success"
+        assert data["summary"]["detections"] == 5
+        assert data["summary"]["matched"] == 1
+        assert data["summary"]["needs_review"] == 1
+        assert data["summary"]["unmatched"] == 1
+        assert data["summary"]["unreadable"] == 1
+        assert data["summary"]["extraction_failed"] == 1
+        assert len(data["items"]) == 5
+
+        # Verify exact item states
+        states = [item["state"] for item in data["items"]]
+        assert "matched" in states
+        assert "needs_review" in states
+        assert "unmatched" in states
+        assert "unreadable" in states
+        assert "extraction_failed" in states
+
+    @patch("shelfie.services.pipeline.ShelfiePipeline.analyze_image")
+    def test_analyze_missing_openrouter_api_key_returns_503(self, mock_analyze, api_client, sample_jpeg_bytes):
+        mock_analyze.side_effect = ValueError("OPENROUTER_API_KEY environment variable is not configured.")
+
+        url = reverse("analyze_shelf")
+        file_obj = io.BytesIO(sample_jpeg_bytes)
+        file_obj.name = "shelf.jpg"
+
+        resp = api_client.post(url, {"image": file_obj}, format="multipart")
+
+        assert resp.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        assert resp.data["error"]["code"] == "configuration_error"
+        assert resp.data["error"]["message"] == "Vision-Language service is not configured on the server."
+
