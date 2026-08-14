@@ -339,6 +339,32 @@ class TestLibraryEndpoints:
         db_book = LibraryBook.objects.first()
         assert db_book.confirmed_title == "The Hobbit"
 
+    def test_post_single_freeform_unmatched_book(self, api_client):
+        url = reverse("library_books")
+        payload = {
+            "confirmed_title": "Custom Unmatched Spine",
+            "confirmed_author": "Independent Author",
+            "edition": "Special Edition",
+            "source_match_confidence": None,
+        }
+        resp = api_client.post(url, payload, format="json")
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert resp.data["added_count"] == 1
+        assert len(resp.data["books"]) == 1
+
+        book = resp.data["books"][0]
+        assert book["catalog_id"] is None
+        assert book["confirmed_title"] == "Custom Unmatched Spine"
+        assert book["confirmed_author"] == "Independent Author"
+        assert book["edition"] == "Special Edition"
+
+        # Verify database record
+        assert LibraryBook.objects.count() == 1
+        db_book = LibraryBook.objects.first()
+        assert db_book.confirmed_title == "Custom Unmatched Spine"
+        assert db_book.catalog_id is None
+
     def test_post_batch_books(self, api_client):
         url = reverse("library_books")
         payload = {
